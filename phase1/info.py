@@ -24,7 +24,7 @@ nltk.download('stopwords')
 
 #household files
 
-from interface import theapi, Dashboard 
+from interface import Dashboard 
 
 
 # Callback to  show a tweet info button

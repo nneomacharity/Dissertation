@@ -1,24 +1,13 @@
 
-import dash
-from dash import dcc, html, dash_table, Input, Output, State, MATCH, ALL
+from dash import dcc, html, Input, Output, State, MATCH, ALL
 import dash_bootstrap_components as dbc
 from dash.dash_table.Format import Group
-from dash.exceptions import PreventUpdate
-import tweepy
-import pycountry
-from geopy.exc import GeocoderTimedOut
-from geopy.geocoders import Nominatim
 import pandas as pd
-import os
-import csv
-import io
-from datetime import datetime as dt
-import re
-import string
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import nltk
+import subprocess
 nltk.download('stopwords')
 
 
@@ -91,4 +80,50 @@ def clean_tweets(df, options):
         df.dropna(subset=['Text'], inplace=True)
     return df
 
+
+# Clean tweets and show 'See Dashboard' button
+@Dashboard.callback(
+    Output("dashboard-button-section", "children"),
+    [Input("preprocess-button", "n_clicks")],
+    [State("cleaning-options", "value")]
+)
+def clean_and_display_tweets(n_clicks, cleaning_options):
+    if n_clicks and n_clicks > 0:
+        # Loading the tweets data
+        df = pd.read_csv('retrieved_tweets.csv')
+
+        # Cleaning the tweets
+        cleaned_df = clean_tweets(df, cleaning_options)
+
+        # Saving the cleaned tweets to a CSV file
+        cleaned_df.to_csv('cleaned_tweets.csv', index=False)
+
+        # Displaying the "See Dashboard" button
+        return [
+            dbc.Spinner([
+                dbc.Button("See Dashboard", id="see-dashboard-button", color="primary", className="mr-2", style={"display": "block", "margin": "auto"})
+            ], color="primary", type="grow"),
+            # Adding a hidden div to trigger the callback to open phase2.py
+            html.Div(id="open-phase2-div", style={"display": "none"})
+        ]
+    else:
+        return None
+
+# Callback to open and run phase2.py when the "See Dashboard" button is clicked
+@Dashboard.callback(
+    Output("open-phase2-div", "children"),
+    [Input("see-dashboard-button", "n_clicks")]
+)
+def open_phase2_script(n_clicks):
+    if n_clicks and n_clicks > 0:
+        python_executable = "python"
+        phase2_script = "phase2.py"
+
+        # Running phase2.py using subprocess
+        subprocess.run([python_executable, phase2_script])
+
+    return None
+
+if __name__ == "__main__":
+    Dashboard.run_server(debug=True)
 

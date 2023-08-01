@@ -21,8 +21,6 @@ import nltk
 nltk.download('stopwords')
 
 
-
-
 # Defining the Tweet class
 class Tweet:
     def __init__(self, tweet_id, text, likes, retweets, comments, shares, created_at):
@@ -60,44 +58,25 @@ auth.set_access_token(access_key, access_secret)
 
 theapi = tweepy.API(auth)
 
+
+
 # Building the interface of the welcome page using Dash
 Dashboard = dash.Dash(__name__, suppress_callback_exceptions=True, external_stylesheets=[dbc.themes.PULSE],
                       meta_tags=[{'name': 'viewport',
                                   'content': 'width=device-width, initial-scale=1.0'}]
                     )
 
-
-
-
-
-
-
-
-# Clean tweets and show 'See Dashboard' button
-@Dashboard.callback(
-    Output("dashboard-button-section", "children"),
-    [Input("preprocess-button", "n_clicks")],
-    [State("cleaning-options", "value")]
-)
-def clean_and_display_tweets(n_clicks, cleaning_options):
-    if n_clicks and n_clicks > 0:
-        # Load your tweets data
-        df = pd.read_csv('retrieved_tweets.csv')
-
-        # Clean the tweets
-        cleaned_df = clean_tweets(df, cleaning_options)
-
-        # Save the cleaned tweets to a CSV file
-        cleaned_df.to_csv('cleaned_tweets.csv', index=False)
-
-        # Display the "See Dashboard" button
-        return [
-            dbc.Spinner([
-                dbc.Button("See Dashboard", id="see-dashboard-button", color="primary", className="mr-2", style={"display": "block", "margin": "auto"})
-            ], color="primary", type="grow")
-        ]
-    else:
-        return None
+#calling all the other parts of the codes
+from scraping import show_input
+from scraping import show_date
+from scraping import retrieve_tweets
+from scraping import retrieve_and_store_tweets
+from scraping import display_output
+from info import show_tweets_info
+from preprocess import clean_tweets_button
+from preprocess import show_cleaning_options
+from preprocess import clean_tweets
+from preprocess import clean_and_display_tweets
 
 if __name__ == "__main__":
     Dashboard.run_server(debug=True)

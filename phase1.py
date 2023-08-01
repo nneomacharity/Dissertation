@@ -18,6 +18,7 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import nltk
+import subprocess
 nltk.download('stopwords')
 
 
@@ -358,23 +359,40 @@ def clean_tweets(df, options):
 )
 def clean_and_display_tweets(n_clicks, cleaning_options):
     if n_clicks and n_clicks > 0:
-        # Load your tweets data
+        # Loading the tweets data
         df = pd.read_csv('retrieved_tweets.csv')
 
-        # Clean the tweets
+        # Cleaning the tweets
         cleaned_df = clean_tweets(df, cleaning_options)
 
-        # Save the cleaned tweets to a CSV file
+        # Saving the cleaned tweets to a CSV file
         cleaned_df.to_csv('cleaned_tweets.csv', index=False)
 
-        # Display the "See Dashboard" button
+        # Displaying the "See Dashboard" button
         return [
             dbc.Spinner([
                 dbc.Button("See Dashboard", id="see-dashboard-button", color="primary", className="mr-2", style={"display": "block", "margin": "auto"})
-            ], color="primary", type="grow")
+            ], color="primary", type="grow"),
+            # Adding a hidden div to trigger the callback to open phase2.py
+            html.Div(id="open-phase2-div", style={"display": "none"})
         ]
     else:
         return None
+
+# Callback to open and run phase2.py when the "See Dashboard" button is clicked
+@Dashboard.callback(
+    Output("open-phase2-div", "children"),
+    [Input("see-dashboard-button", "n_clicks")]
+)
+def open_phase2_script(n_clicks):
+    if n_clicks and n_clicks > 0:
+        python_executable = "python"
+        phase2_script = "phase2.py"
+
+        # Running phase2.py using subprocess
+        subprocess.run([python_executable, phase2_script])
+
+    return None
 
 if __name__ == "__main__":
     Dashboard.run_server(debug=True)

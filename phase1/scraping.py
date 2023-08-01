@@ -1,5 +1,5 @@
 import dash
-from dash import dcc, html, dash_table, Input, Output, State, MATCH, ALL
+from dash import dcc, html, Input, Output, State, MATCH, ALL
 import dash_bootstrap_components as dbc
 from dash.dash_table.Format import Group
 from dash.exceptions import PreventUpdate
@@ -10,10 +10,7 @@ from geopy.geocoders import Nominatim
 import pandas as pd
 import os
 import csv
-import io
 from datetime import datetime as dt
-import re
-import string
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -24,7 +21,7 @@ nltk.download('stopwords')
 
 #household files
 
-from interface import theapi, Dashboard,countries, geocoder
+from interface import theapi, Dashboard,countries, geocoder, Tweet
 
 # Adding a start button to commence activity
 @Dashboard.callback(Output("input-section", "children"), [Input("start-button", "n_clicks")], [State('input-section', 'children')])

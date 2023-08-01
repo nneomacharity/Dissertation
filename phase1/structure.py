@@ -1,32 +1,14 @@
 import dash
-from dash import dcc, html, dash_table, Input, Output, State, MATCH, ALL
+from dash import dcc, html, MATCH, ALL
 import dash_bootstrap_components as dbc
 from dash.dash_table.Format import Group
-from dash.exceptions import PreventUpdate
-import tweepy
-import pycountry
-from geopy.exc import GeocoderTimedOut
-from geopy.geocoders import Nominatim
-import pandas as pd
-import os
-import csv
-import io
-from datetime import datetime as dt
-import re
-import string
 import nltk
-from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import nltk
 nltk.download('stopwords')
 
 
-
-# Building the interface of the welcome page using Dash
-Dashboard = dash.Dash(__name__, suppress_callback_exceptions=True, external_stylesheets=[dbc.themes.PULSE],
-                      meta_tags=[{'name': 'viewport',
-                                  'content': 'width=device-width, initial-scale=1.0'}]
-                      )
+from interface import Dashboard
 
 # Adding a background image to the welcome page
 Dashboard.layout = html.Div(
