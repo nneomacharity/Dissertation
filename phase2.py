@@ -42,44 +42,7 @@ df = pd.read_csv(('cleaned_tweets.csv'))
 
 #Generating the basic codes for each of the graphical chart backend****
 
-#content  analysis *****************************************************
-def content_analysis(df, column_name, num_topics=10):
-    # Count the occurrences of each word in the column
-    word_counts = df[column_name].str.split(expand=True).stack().value_counts()
-    
-    # Extract the most common words as trending topics
-    trending_topics = word_counts.head(num_topics).index.tolist()
-    return trending_topics
-
-# Define the callback to update the bar chart for content analysis
-@interface.callback(
-    Output('bar-chart', 'figure'),
-    [Input('top-words-slider', 'value')]
-)
-def update_bar_chart(num_topics):
-    # Get the top trending topics based on the slider value
-    trending_topics = content_analysis(df, 'Text', num_topics)
-
-    # Getting the corresponding frequency of each trending topic
-    topic_counts = df['Text'].str.split(expand=True).stack().value_counts()
-    topic_counts = topic_counts[trending_topics]
-
-    # Creating the bar chart
-    fig = go.Figure(data=[go.Bar(x=trending_topics, y=topic_counts)])
-
-    fig.update_layout(
-        title="Top Trending Topics, Keywords and Hashtags",
-        xaxis_title="Topic",
-        yaxis_title="Frequency",
-        height=400
-    )
-    return fig
-
-
-
-
-
-'''
+#block 1 - similarity analysis analysis - scattered plot
 #Similarity  analysis *****************************************************
 vectorizer = TfidfVectorizer()
 tfidf_matrix = vectorizer.fit_transform(df['Text'].astype('U').values)
@@ -138,6 +101,46 @@ def update_scatter_plot(tweet_index):
     return fig
 
 
+#block 2 - content analysis - line chart
+#content  analysis *****************************************************
+def content_analysis(df, column_name, num_topics=10):
+    # Count the occurrences of each word in the column
+    word_counts = df[column_name].str.split(expand=True).stack().value_counts()
+    
+    # Extract the most common words as trending topics
+    trending_topics = word_counts.head(num_topics).index.tolist()
+    return trending_topics
+
+# Define the callback to update the bar chart for content analysis
+@interface.callback(
+    Output('line-chart', 'figure'),
+    [Input('top-words-slider', 'value')]
+)
+def update_line_chart(num_topics):
+    # Get the top trending topics based on the slider value
+    trending_topics = content_analysis(df, 'Text', num_topics)
+
+    # Getting the corresponding frequency of each trending topic
+    topic_counts = df['Text'].str.split(expand=True).stack().value_counts()
+    topic_counts = topic_counts[trending_topics]
+
+    # Creating the line chart
+    fig = go.Figure(data=[go.scatter.Line(x=trending_topics, y=topic_counts)])
+
+    fig.update_layout(
+        title="Top Trending Topics, Keywords and Hashtags",
+        xaxis_title="Topic",
+        yaxis_title="Frequency",
+        height=400
+    )
+    return fig
+
+
+
+
+
+
+#block 3 - sentiment analysis - pie chart
 #Sentiment analysis *****************************************************
 
 def sentiment_analysis(df):
@@ -183,17 +186,25 @@ def sentiment_analysis(df):
                           )
                       )
                       )
-
     return fig
 
 # Callback to update the pie chart plot for sentiment analysis
 @interface.callback(
     Output('pie-chart', 'figure'),
-    [Input('tweet-selector', 'value')]  # Assuming you have a tweet selector input
+    [Input('tweet-selector', 'value')]  
 )
 def update_pie_chart():
-    fig = sentiment_analysis(df['Text'])
+    fig = sentiment_analysis(df)
     return fig
+
+
+#block 5 - Specific tweet analysis - bar chart
+#Specific Tweet Analysis  *****************************************************
+
+@interface.callback(
+    Output('bar-chart', 'figure'),
+    [Input('tweet-selector-bar-chart', 'value')]
+)
 
 def tweet_analysis(selected_tweet):
     # Filter the dataset to get the row corresponding to the selected tweet
@@ -220,47 +231,8 @@ def tweet_analysis(selected_tweet):
 
     return fig
 
-'''
 
-
-
-#Specific Tweet Analysis  *****************************************************
-
-@interface.callback(
-    Output('bar-chart', 'figure'),
-    [Input('tweet-selector-bar-chart', 'value')]
-)
-
-def tweet_analysis(selected_tweet):
-    available_columns = ['RetweetCount', 'LikeCount', 'ShareCount', 'ReplyCount', 'hastag_counts']  
-
-    data = []
-    for col in available_columns:
-        if col in df:
-            # Plot the bar for the available column
-            data.append(go.Bar(
-                x=[col],
-                y=[df.loc[df['Tweet'] == selected_tweet, col].iloc[0]],
-                name=col.capitalize()  # Show column name as the legend
-            ))
-        else:
-            # If the column is not available, then the program should add an empty trace
-            data.append(go.Bar(
-                x=[col],
-                y=[0],
-                name=col.capitalize()  # Show column name as the legend
-            ))
-
-    return {
-        'data': data,
-        'layout': {
-            'title': f'Analysis for Tweet: {selected_tweet}',
-            'barmode': 'group',
-        }
-    }
-
-
-
+#block 6 - other analysis - all charts
 #Other Analysis  *****************************************************
 
 #Creating dropdowns for X-axis and Y-axis selection
@@ -285,7 +257,7 @@ chart_type_dropdown = dcc.Dropdown(
         {'label': 'line Chart', 'value': 'line'},
         {'label': 'Pie Chart', 'value': 'pie'},
     ],
-    value='bar'  # Setting a default chart type as the initial value
+    value='bar'  # Setting a default chart type as the initial vgraphical representation
 )
 
 # Callback to update plots for any other column comparisons
@@ -298,12 +270,17 @@ chart_type_dropdown = dcc.Dropdown(
     ]
 )
 def other_analysis(x_column, y_column, chart_type):
+    figure = go.Figure()
     if chart_type == 'bar':
         figure = go.Figure(data=[go.Bar(x=df[x_column], y=df[y_column])])
     elif chart_type == 'scatter':
         figure = go.Figure(data=[go.Scatter(x=df[x_column], y=df[y_column], mode='markers')])
-    # Add more conditions for other chart types
+    elif chart_type == 'pie':
+        figure = go.Figure(data=[go.Pie(x=df[x_column], y=df[y_column], mode='markers')])
+    elif chart_type == 'line':
+        figure = go.Figure(data=[go.Linee(x=df[x_column], y=df[y_column], mode='markers')])
 
+    
     # Customize the layout of the chart (optional)
     figure.update_layout(
         title=f"{y_column} vs {x_column}",
@@ -316,7 +293,7 @@ def other_analysis(x_column, y_column, chart_type):
 
 
 
-#Other Sections------------------------------
+#Top Section------------------------------
 
 #Likes
 # Checking if the 'LikesCount' column exists in the DataFrame
@@ -374,7 +351,7 @@ else:
     viewers_text = 'Data Unavailable'
 
 
-#working on the layout and interface
+#Building the layout and interface
 interface.layout = dbc.Container([
     dbc.Row([
         dbc.Col([

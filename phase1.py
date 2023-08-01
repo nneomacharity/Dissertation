@@ -1,524 +1,384 @@
-# installing and all the required libaries needed
-
-import dash                              
-from dash import html
-from dash import dcc
-from dash.dependencies import Output, Input
-from datetime import date
-from dash_extensions import Lottie       
-import dash_bootstrap_components as dbc  
-import plotly.express as px                                  
-import calendar
-from wordcloud import WordCloud 
-import plotly.graph_objects as go
+import dash
+from dash import dcc, html, dash_table, Input, Output, State, MATCH, ALL
+import dash_bootstrap_components as dbc
+from dash.dash_table.Format import Group
+from dash.exceptions import PreventUpdate
+import tweepy
+import pycountry
+from geopy.exc import GeocoderTimedOut
+from geopy.geocoders import Nominatim
 import pandas as pd
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.cluster import KMeans
-from sklearn.decomposition import TruncatedSVD
-import random
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
+import os
+import csv
+import io
+from datetime import datetime as dt
+import re
+import string
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+import nltk
+nltk.download('stopwords')
 
 
 
-# using a theme  from bootstthemes by Ann: https://hellodash.pythonanywhere.com/theme_explorer
-#picking a purple colour theme also known as PULSE
-interface = dash.Dash(__name__, external_stylesheets=[dbc.themes.PULSE]) 
+# Defining the Tweet class
+class Tweet:
+    def __init__(self, tweet_id, text, likes, retweets, comments, shares, created_at):
+        self.tweet_id = tweet_id
+        self.text = text
+        self.likes = likes
+        self.retweets = retweets
+        self.comments = comments
+        self.shares = shares
+        self.created_at = created_at
 
+# Generating a list of countries using pycountry
+countries = [{'label': country.name, 'value': country.alpha_2} for country in pycountry.countries]
 
-#inputting animations for the headers all generated from lottie - https://lottiefiles.com/
-likes = "https://assets10.lottiefiles.com/datafiles/hvAaKBDVLhuV5Wl/data.json"
-viewers = "https://assets7.lottiefiles.com/packages/lf20_i48xonfk.json"
-retweets = "https://assets5.lottiefiles.com/packages/lf20_iF9sFw.json"
-comments = "https://assets9.lottiefiles.com/packages/lf20_1joxr8cy.json"
-shares = "https://assets10.lottiefiles.com/packages/lf20_OBNxe4.json"
-options = dict(loop=True, autoplay=True, rendererSettings=dict(preserveAspectRatio='xMidYMid slice'))
+#Geocoding the Countries
+def do_geocode(address):
+    geolocator = Nominatim(user_agent="myGeocoder")
+    try:
+        return geolocator.geocode(address)
+    except GeocoderTimedOut:
+        return do_geocode(address)
 
+# Connecting to the Twitter API using credentials provided from my developer account
+consumer_key = 'PuQc9u7k0aAWBeC5iuvA50phL'
+consumer_secret = 'gHnv2OsSMaYM0TAjVhksWcw7JER0f5Ur1aGJnXje5WQS5iUJm1'
+access_key = '924681622288510980-AkQbiEXVKODsfIECQgQPMNjworq8dvG'
+access_secret = 'CuIqjmoDO2UisyZHDi8nZqb8d0expwedM6eWQGGsCb7oO'
 
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_key, access_secret)
 
-#reading the cleaned tweets csv file
-df = pd.read_csv(('cleaned_tweets.csv'))
+theapi = tweepy.API(auth)
 
-#Generating the basic codes for each of the graphical chart backend****
-
-#content  analysis *****************************************************
-def content_analysis(df, column_name, num_topics=10):
-    # Count the occurrences of each word in the column
-    word_counts = df[column_name].str.split(expand=True).stack().value_counts()
-    
-    # Extract the most common words as trending topics
-    trending_topics = word_counts.head(num_topics).index.tolist()
-    return trending_topics
-
-# Define the callback to update the bar chart for content analysis
-@interface.callback(
-    Output('bar-chart', 'figure'),
-    [Input('top-words-slider', 'value')]
-)
-def update_bar_chart(num_topics):
-    # Get the top trending topics based on the slider value
-    trending_topics = content_analysis(df, 'Text', num_topics)
-
-    # Getting the corresponding frequency of each trending topic
-    topic_counts = df['Text'].str.split(expand=True).stack().value_counts()
-    topic_counts = topic_counts[trending_topics]
-
-    # Creating the bar chart
-    fig = go.Figure(data=[go.Bar(x=trending_topics, y=topic_counts)])
-
-    fig.update_layout(
-        title="Top Trending Topics, Keywords and Hashtags",
-        xaxis_title="Topic",
-        yaxis_title="Frequency",
-        height=400
-    )
-    return fig
-
-
-
-
-
-'''
-#Similarity  analysis *****************************************************
-vectorizer = TfidfVectorizer()
-tfidf_matrix = vectorizer.fit_transform(df['Text'].astype('U').values)
-
-#Computing the Cosine Similarity
-cosine_sim = cosine_similarity(tfidf_matrix)
-
-#Clustering Using K-Means
-num_clusters = 5  
-kmeans = KMeans(n_clusters=num_clusters, random_state=42)
-kmeans.fit(tfidf_matrix)
-# Function for Finding Similar Tweets
-def find_similar_tweets(tweet_index, num_similar=5):
-    row = cosine_sim[tweet_index]
-    similar_indices = np.argsort(row)[-num_similar-1:-1][::-1]
-    return similar_indices, row[similar_indices]
-
-# Callback to update the scatter plot for similar tweets
-@interface.callback(
-    Output('scatter-plot', 'figure'),
-    [Input('tweet-selector', 'value')]
-)
-def update_scatter_plot(tweet_index):
-    # TruncatedSVD for 2D visualization
-    tsvd = TruncatedSVD(n_components=2, random_state=42)
-    reduced_tfidf = tsvd.fit_transform(tfidf_matrix)
-
-    # Get similar tweets
-    similar_indices, _ = find_similar_tweets(tweet_index)
-
-    # Scatter plot
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=reduced_tfidf[similar_indices, 0],
-        y=reduced_tfidf[similar_indices, 1],
-        mode='markers',
-        marker=dict(color='blue', size=10),
-        name='Similar Tweets',
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=[reduced_tfidf[tweet_index, 0]],
-        y=[reduced_tfidf[tweet_index, 1]],
-        mode='markers',
-        marker=dict(color='red', size=12),
-        name='Selected Tweet',
-    ))
-
-    fig.update_layout(
-        title='Similarity Analysis: Similar Tweets Visualization',
-        xaxis_title='Principal Component 1',
-        yaxis_title='Principal Component 2',
-        height=400
-    )
-
-    return fig
-
-
-#Sentiment analysis *****************************************************
-
-def sentiment_analysis(df):
-    # Initializing and usingthe VADER SentimentIntensityAnalyzer
-    analyzer = SentimentIntensityAnalyzer()
-
-    # Performing sentiment analysis for each tweet and categorize them into 5 sentiment groups
-    sentiments = []
-    for text in df['Text']:
-        score = analyzer.polarity_scores(text)
-        compound_score = score['compound']
-
-        if compound_score >= 0.8:
-            sentiment = 'Highly Positive'
-        elif 0.5 <= compound_score < 0.8:
-            sentiment = 'Positive'
-        elif -0.5 <= compound_score < 0.5:
-            sentiment = 'Neutral'
-        elif -0.8 <= compound_score < -0.5:
-            sentiment = 'Negative'
-        else:
-            sentiment = 'Highly Negative'
-        sentiments.append(sentiment)
-
-    # Counting the occurrences of each sentiment category
-    sentiment_counts = {sentiment: sentiments.count(sentiment) for sentiment in set(sentiments)}
-
-
-    # Preparing data for the 3D pie chart
-    labels = list(sentiment_counts.keys())
-    values = list(sentiment_counts.values())
-
-    # Creating the 3D pie chart figure
-    fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.3)])
-
-    # Updating the layout for better visualization
-    fig.update_layout(title='Sentiment Analysis',
-                      margin=dict(l=0, r=0, t=30, b=0),
-                      scene=dict(
-                          aspectmode="cube",
-                          camera=dict(
-                              eye=dict(x=1.2, y=1.2, z=1.2)
-                          )
-                      )
+# Building the interface of the welcome page using Dash
+Dashboard = dash.Dash(__name__, suppress_callback_exceptions=True, external_stylesheets=[dbc.themes.PULSE],
+                      meta_tags=[{'name': 'viewport',
+                                  'content': 'width=device-width, initial-scale=1.0'}]
                       )
 
-    return fig
+# Adding a background image to the welcome page
+Dashboard.layout = html.Div(
+    style={
+        'background-image': 'url(https://images.unsplash.com/photo-1683560044376-6ac69ce791c5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1375&q=80)',
+        'background-size': 'cover',
+        'height': '100vh',
+    },
+    children=[
+        dcc.Store(id='server-side-store', storage_type='session'),
+        dbc.Container([
+            dbc.Row(dbc.Col(html.H1("Interactive Analytics of Twitter in Real Time", style={"textAlign": "center", 'color':"white"}), width=40 )),
+            html.Hr(),  # Adding a horizontal line as a divisor
 
-# Callback to update the pie chart plot for sentiment analysis
-@interface.callback(
-    Output('pie-chart', 'figure'),
-    [Input('tweet-selector', 'value')]  # Assuming you have a tweet selector input
-)
-def update_pie_chart():
-    fig = sentiment_analysis(df['Text'])
-    return fig
-'''
+            dbc.Row(
+                dbc.Col(
+                    [
+                        html.H3("Hi! I'm Lemonade AI, let's make a juice!", style={"textAlign": "center", 'color':"white"}),  # Adding a welcome address
+                        html.P("Click the button below to hand me some lemons:", style={"textAlign": "center", 'color':"white"}),
+                        dbc.Button("Start", id="start-button", color="primary", className="mr-2",
+                                   style={"display": "block", "margin": "auto"}),
+                    ],
+                    width=12,
+                    className="mt-2",
+                    align="center"  # Aligning the content vertically within the column
+                ),
+                align="center",  # Aligning the row vertically within the container
+                className="mt-2"  # Adding a top margin to the row
+            ),
 
+            dbc.Row(
+                dbc.Col(id="input-section", width=6, className="mt-4", style={"margin": "auto"}),
+                className="justify-content-center"
+            ),
 
+            dbc.Row(
+                dbc.Col(id="date-section", className="mt-4", style={"margin": "auto"}),
+                className="justify-content-center"
+            ),
 
-#Other Analysis  *****************************************************
+            dbc.Row(
+                dbc.Col(id="retrieve-section", className="mt-4", style={"margin": "auto"}),
+                className="justify-content-center"
+            ),
 
-#Creating dropdowns for X-axis and Y-axis selection
-x_dropdown = dcc.Dropdown(
-    id='x-axis-dropdown',
-    options=[{'label': col, 'value': col} for col in df.columns],
-    value=df.columns[0]  # Setting a default column as the initial value
-)
+            dbc.Row(
+                dbc.Col(id="output-section", className="mt-4", style={"margin": "auto"}),
+                className="justify-content-center"
+            ),
 
-y_dropdown = dcc.Dropdown(
-    id='y-axis-dropdown',
-    options=[{'label': col, 'value': col} for col in df.columns],
-    value=df.columns[1]  # Setting another default column as the initial value
-)
+            dbc.Row(
+                dbc.Col(id="info-section", className="mt-4", style={"margin": "auto"}),
+                className="justify-content-center"
+            ),
+            dbc.Row(
+                dbc.Col(id="cleaning-tweets-section", className="mt-4", style={"margin": "auto"}),
+                className="justify-content-center"
+            ),
+            dbc.Row(
+                dbc.Col(id="cleaning-options-section", className="mt-4", style={"margin": "auto"}),
+                className="justify-content-center"
+            ),
+            dbc.Row(
+            dcc.Loading(
+                id="loading",
+                type="default",
+                children=html.Div(id="dashboard-button-section", className="mt-4", style={"margin": "auto"})
+            ),
+            className="justify-content-center"
+        ),
 
-# Creating dropdown for chart type selection
-chart_type_dropdown = dcc.Dropdown(
-    id='chart-type-dropdown',
-    options=[
-        {'label': 'Bar Chart', 'value': 'bar'},
-        {'label': 'Scatter Plot', 'value': 'scatter'},
-        {'label': 'line Chart', 'value': 'line'},
-        {'label': 'Pie Chart', 'value': 'pie'},
-    ],
-    value='bar'  # Setting a default chart type as the initial value
-)
-
-# Callback to update plots for any other column comparisons
-@interface.callback(
-    Output('chart', 'figure'),
-    [
-        Input('x-axis-dropdown', 'value'),
-        Input('y-axis-dropdown', 'value'),
-        Input('chart-type-dropdown', 'value')
+        ], style={"max-width": "500px", "margin": "auto"})
     ]
 )
-def other_analysis(x_column, y_column, chart_type):
-    if chart_type == 'bar':
-        figure = go.Figure(data=[go.Bar(x=df[x_column], y=df[y_column])])
-    elif chart_type == 'scatter':
-        figure = go.Figure(data=[go.Scatter(x=df[x_column], y=df[y_column], mode='markers')])
-    # Add more conditions for other chart types
 
-    # Customize the layout of the chart (optional)
-    figure.update_layout(
-        title=f"{y_column} vs {x_column}",
-        xaxis_title=x_column,
-        yaxis_title=y_column
-    )
-    
-    return figure
+# Adding a start button to commence activity
+@Dashboard.callback(Output("input-section", "children"), [Input("start-button", "n_clicks")], [State('input-section', 'children')])
+def show_input(n_clicks, children):
+    if n_clicks is not None and n_clicks > 0:
+        return [
+            dcc.Input(id="input-keyword", placeholder="Enter a keyword", type="text", className="mb-2",
+                      style={"width": "100%"}),
+            dcc.Dropdown(id='country-dropdown', options=countries, placeholder='Select a country')
+        ]
+    else:
+        return children
 
-
-
-
-#Other Sections------------------------------
-
-
-
-#Likes
-# Checking if the 'LikesCount' column exists in the DataFrame
-if 'LikeCount' in df.columns:
-    # Calculating the sum of likes
-    total_likes = df['LikeCount'].sum()
-    # Setting the text to display the total likes
-    likes_text = str(total_likes)
-else:
-    # Setting the text to display 'Data Unavailable'
-    likes_text = 'Data Unavailable'
-
-
-
-
-#Retweets
-# Checking if the 'RetweetCount' column exists in the DataFrame
-if 'RetweetCount' in df.columns:
-    # Calculating the sum of retweets
-    total_retweet = df['RetweetCount'].sum()
-    # Setting the text to display the total retweet
-    retweet_text = str(total_retweet)
-else:
-    # Setting the text to display 'Data Unavailable'
-    retweet_text = 'Data Unavailable'
-
-
-
-
-#Reshare block
-# Checking if the 'RetweetCount' column exists in the DataFrame
-if 'ReshareCount' in df.columns:
-    # Calculating the sum of shares
-    total_reshare = df['ShareCount'].sum()
-    # Setting the text to display the total reshare
-    reshare_text = str(total_reshare)
-else:
-    # Setting the text to display 'Data Unavailable'
-    reshare_text = 'Data Unavailable'
-
-
-
-
-
-#Comments block
-# Checking if the 'CommentCount' column exists in the DataFrame
-if 'ReplyCount' in df.columns:
-    # Calculating the sum of comments
-    total_comment = df['ReplyCount'].sum()
-    # Setting the text to display the total commments
-    comment_text = str(total_comment)
-else:
-    # Setting the text to display 'Data Unavailable'
-    comment_text = 'Data Unavailable'
-
-
-
-
-
-
-
-
-#Viewers block
-# Checking if the 'ViewersCount' column exists in the DataFrame
-if 'ViewersCount' in df.columns:
-    # Calculating the sum of viewers
-    total_viewers = df['ViewersCount'].sum()
-    # Setting the text to display the total commments
-    viewers_text = str(total_viewers)
-else:
-    # Setting the text to display 'Data Unavailable'
-    viewers_text = 'Data Unavailable'
-
-
-
-
-
-#working on the layout and interface
-interface.layout = dbc.Container([
-    dbc.Row([
-        dbc.Col([
-            dbc.Card([
-                dbc.CardImg(src='/assets/twitter-logo2.png') # 150px by 45px
-            ],className='mb-2'),
-            dbc.Card([
-                dbc.CardBody([
-                    dbc.CardLink("Go Back", target="_blank",
-                                 href="link to the csv file"
-                    )
-                ])
-            ]),
-        ], width=2),
-        dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    dcc.DatePickerSingle(
-                        id='beginning_from',
-                        date=date(2020, 1, 1),
-                        className='ml-5'
-                    ),
-                    dcc.DatePickerSingle(
-                        id='to_end_of',
-                        date=date(2023, 8, 31),
-                        className='mb-2 ml-2'
-                    ),
-                ])
-            ], color="info"),
-        ], width=8),
-    ],className='mb-2 mt-2'),
-    dbc.Row([
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader(Lottie(options=options, width="67%", height="67%", url=likes)),
-                dbc.CardBody([
-                    html.H5('Total Likes'),
-                    html.H6(id='total_likes',  children=likes_text, style={'color': 'blue'}),
-                ], style={'textAlign':'center'})
-            ]),
-        ], width=2),
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader(Lottie(options=options, width="67%", height="67%", url=viewers)),
-                dbc.CardBody([
-                    html.H5('Total Viewers'),
-                    html.H6(id='views', children=viewers_text, style={'color': 'blue'})
-                ], style={'textAlign':'center'})
-            ]),
-        ], width=2),
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader(Lottie(options=options, width="67%", height="67%", url=retweets)),
-                dbc.CardBody([
-                    html.H5('Total Retweets'),
-                    html.H6(id='retweet', children=retweet_text, style={'color': 'blue'})
-                ], style={'textAlign':'center'})
-            ]),
-        ], width=2),
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader(Lottie(options=options, width="67%", height="67%", url=comments)),
-                dbc.CardBody([
-                    html.H5('Total Comments'),
-                    html.H6(id='comments', children=comment_text, style={'color': 'blue'})
-                ], style={'textAlign': 'center'})
-            ]),
-        ], width=2),
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader(Lottie(options=options, width="67%", height="67%", url=shares)),
-                dbc.CardBody([
-                    html.H5('Total Shares'),
-                    html.H6(id='reshare', children=reshare_text, style={'color': 'blue'})
-                ], style={'textAlign': 'center'})
-            ]),
-        ], width=2),
-    ],className='mb-2'),
+# Adding the dropdown of countries in the world for the user to choose from
+@Dashboard.callback(
+    Output("date-section", "children"),
+    Output("date-section", "style"),
+    [Input("country-dropdown", "value")],
+    [State("date-section", "children")]
+)
+# Adding a date range or calender/ a request for the number of tweets to be retieved
+def show_date(value, children):
+    if value is not None:
+        return (
+            [
+                dbc.Row([
+                    dbc.Col([
+                        dcc.DatePickerRange(id='date-picker-start', className="mb-2",  start_date_placeholder_text='Tweets from',
+                        end_date_placeholder_text='Till'),
+                    ], width=12, className="m-auto")
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        dcc.Input(id='tweets-input', type='number', placeholder='Number of tweets', min=0, step=1),
+                    ], width=6, className="m-auto")
+                ]),
+            ],
+            {},  # this will make the date-section visible as it removes the 'display: none' style
+        )
+    else:
+        return children, {"display": "none"}
     
 
+# Adding a retrieve button for twitter scraping to be initiated
+@Dashboard.callback(Output("retrieve-section", "children"), Output("retrieve-section", "style"),
+                    [Input("tweets-input", "value")], [State("retrieve-section", "children")])
+def retrieve_tweets(value, children):
+    if value is not None and value > 0:
+        return( 
+            [dbc.Button("Retreive Tweets", id="retrieve-button", color="primary", className="mr-2", style={"display": "block", "margin": "auto"}),
+            html.P(
+                "N.B: You may have to modify the API logins to retrieve large quantity of tweets.",
+                style={"fontSize": "13px", "color": "white", 'textAlign': 'center'}),
+             dbc.Button("Show Tweets Info", id="show-tweets-button", color="primary", className="mr-2", 
+                style={"display": "block", "margin": "auto"})
+            
+            ],
+            {}
+        )
+    else:
+        return children, {"display": "none"}
+
+# Callback to start fetching the tweets
+@Dashboard.callback(Output('server-side-store', 'data'),
+                    [Input('retrieve-button', 'n_clicks')],
+                    [State('input-keyword', 'value'),
+                     State('country-dropdown', 'value'),
+                     State('date-picker-start', 'start_date'),
+                     State('date-picker-start', 'end_date'),
+                     State('tweets-input', 'value'),
+                     State('server-side-store', 'data')])
+def retrieve_and_store_tweets(n_clicks, keyword, country, start_date, end_date, tweets_number, data):
+    if n_clicks and keyword and country and start_date and end_date and tweets_number:
+        data = data or {}
+        data['status'] = 'loading'
+        location = do_geocode(country)
+        latitude = location.latitude
+        longitude = location.longitude
+        
+        query = f"{keyword} geocode:{latitude},{longitude},1000km"
+        tweets = []
+        for tweet in tweepy.Cursor(theapi.search_tweets, q=keyword, lang="en", since=start_date, until=end_date, tweet_mode='extended').items(tweets_number):
+            tweet_text = tweet.full_text
+            tweet_id = tweet.id
+            likes = tweet.favorite_count
+            retweets = tweet.retweet_count
+            comments = tweet.reply_count
+            shares = tweet.quote_count
+            created_at = tweet.created_at.strftime("%Y-%m-%d %H:%M:%S")
+                
+            new_tweet = Tweet(tweet_id, tweet_text, likes, retweets, comments, shares, created_at)
+            tweets.append(new_tweet)
+
+        # Saving the retrieved tweets into a csv file
+        file_path = os.path.join('C:/Users/DELL/Desktop/Dissertation/', 'retrieved_tweets.csv')
+        with open(file_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=['date', 'tweet', 'country', 'keyword'])
+            writer.writeheader()
+            writer.writerows(tweets)
+        data['status'] = 'done'
+        return data
+    else:
+        raise PreventUpdate
+
+# Callback to handle and display spinner and messages
+@Dashboard.callback(Output('output-section', 'children'),
+                    [Input('server-side-store', 'modified_timestamp')],
+                    [State('server-side-store', 'data')])
+def display_output(ts, data):
+    if ts is None:
+        raise PreventUpdate
+
+    data = data or {}
+    status = data.get('status')
+
+    if status == 'loading':
+        return dbc.Spinner(color="primary")
+    elif status == 'done':
+        return html.P("Tweets retrieved and saved.")
+    else:
+        return None
+# Callback to  show a tweet info button
+@Dashboard.callback(
+    Output("info-section", "children"),
+    [Input("show-tweets-button", "n_clicks")]
+)
+def show_tweets_info(n_clicks):
+    if n_clicks is not None and n_clicks > 0:
+        # Loading the saved DataFrame
+        df = pd.read_csv ('retrieved_tweets.csv')
+        
+        # Preparing the info of the DataFrame
+        info = f"Number of rows: {df.shape[0]}\nNumber of columns: {df.shape[1]}"
+        
+        # Adding data types of each column
+        info += "\n\n" + df.dtypes.to_string()  # data types of each column
+
+        # Adding count of NaN values for each column
+        nan_counts = df.isnull().sum()
+        for column, count in nan_counts.items():
+            info += f"NaN count in {column}: {count}\n"
+        
+        # Creating a preformatted text block to display the info
+        info_block = dcc.Markdown(f"```\n{info}\n```", style={'whiteSpace': 'pre-line'})
+        
+        return info_block
+    else:
+        return None
+
+
+#preprocessing stage
+
+@Dashboard.callback(
+    Output("cleaning-tweets-section", "children"),
+    [Input("show-tweets-button", "n_clicks")]
+)
+def clean_tweets_button(n_clicks):
+    if n_clicks is not None and  n_clicks > 0:
+        return [
+            dbc.Button("Preprocess Tweets", id="clean-tweets-button", color="primary", className="mr-2", style={"display": "block", "margin": "auto"}),
+        ]
+    else:
+        return None
+
+# Show cleaning options and 'Preprocess' button
+@Dashboard.callback(
+    Output("cleaning-options-section", "children"),
+    [Input('clean-tweets-button', 'n_clicks')]
+)
+def show_cleaning_options(n_clicks):
+    if n_clicks and n_clicks > 0:
+        return [
+            html.P("Choose one or more of these options:"),
+            dcc.Checklist(
+                id='cleaning-options',
+                options=[
+                    {'label': 'Convert tweet to lowercase', 'value': 'lowercase'},
+                    {'label': 'Remove punctuations', 'value': 'punctuations'},
+                    {'label': 'Remove stopwords', 'value': 'stopwords'},
+                    {'label': 'Remove digits', 'value': 'digits'},
+                    {'label': 'Remove URLs', 'value': 'urls'},
+                    {'label': 'Remove numerical values', 'value': 'numerical_values'},
+                    {'label': 'Remove non-alphabetic characters', 'value': 'non_alphabetic_characters'},
+                    {'label': 'Remove missing data', 'value': 'missing_data'},
+                ],
+                value=[]
+            ),
+            dbc.Button("Start Preprocessing", id="preprocess-button", color="primary", className="mr-2", style={"display": "block", "margin": "auto"})
+        ]
+    else:
+        return None
+
+
+def clean_tweets(df, options):
+    if 'lowercase' in options:
+        df['Text'] = df['Text'].str.lower()
+    if 'punctuations' in options:
+        df['Text'] = df['Text'].str.replace('[^\w\s]', '')
+    if 'stopwords' in options:
+        from nltk.corpus import stopwords
+        stop = stopwords.words('english')
+        df['Text'] = df['Text'].apply(lambda x: ' '.join([word for word in x.split() if word not in (stop)]))
+    if 'digits' in options:
+        df['Text'] = df['Text'].str.replace('\d+', '')
+    if 'urls' in options:
+        df['Text'] = df['Text'].replace(to_replace=r'http\S+', value='', regex=True).replace(to_replace=r'www\S+', value='', regex=True)
+    if 'numerical_values' in options:
+        df['Text'] = df['Text'].str.replace('\d+', '')
+    if 'non_alphabetic_characters' in options:
+        df['Text'] = df['Text'].str.replace('[^a-zA-Z]', ' ')
+    if 'missing_data' in options:
+        df.dropna(subset=['Text'], inplace=True)
+    return df
 
 
 
-#Laying Out the Graphs
-#Scatter Plot  for similarity Analysis
+# Clean tweets and show 'See Dashboard' button
+@Dashboard.callback(
+    Output("dashboard-button-section", "children"),
+    [Input("preprocess-button", "n_clicks")],
+    [State("cleaning-options", "value")]
+)
+def clean_and_display_tweets(n_clicks, cleaning_options):
+    if n_clicks and n_clicks > 0:
+        # Load your tweets data
+        df = pd.read_csv('retrieved_tweets.csv')
 
-    dbc.Row([
-        dbc.Col([
-            dbc.Card([
-                dbc.CardBody([ 
-                        dcc.Dropdown(
-                            id='tweet-selector',
-                            options=[{'label': f'Tweet {i}', 'value': i} for i in range(len(df))],
-                            value=random.randint(0, len(df) - 1),  # Initializing with a random tweet
-                            
-                    ),
-                        dcc.Graph(id='Scatter-plot', figure={}),
-                ])
-            ]),
-        ],width=6),
+        # Clean the tweets
+        cleaned_df = clean_tweets(df, cleaning_options)
 
- 
+        # Save the cleaned tweets to a CSV file
+        cleaned_df.to_csv('cleaned_tweets.csv', index=False)
 
- #Line chart for Content Analysis 
-        dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    html.H6('Slide through to pick the number of top words you desire'),
-                           dcc.Slider(
-                                id='top-words-slider',
-                                min=0,
-                                max=50,
-                                step=1,
-                                value=10,
-                                marks={i: str(i) for i in range(0, 51, 10)},
-                                tooltip={'placement': 'bottom'}
-                            ),
-                            dcc.Graph(id='line-chart', figure={}),
-                ])
-            ]),
-        ], width=6),
-    ],className='mb-2'),
+        # Display the "See Dashboard" button
+        return [
+            dbc.Spinner([
+                dbc.Button("See Dashboard", id="see-dashboard-button", color="primary", className="mr-2", style={"display": "block", "margin": "auto"})
+            ], color="primary", type="grow")
+        ]
+    else:
+        return None
 
+if __name__ == "__main__":
+    Dashboard.run_server(debug=True)
 
-#Pie chart for   
-    dbc.Row([
-        dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    dcc.Graph(id='pie-chart', figure={}),
-                ])
-            ]),
-        ], width=6),
-
-#Word chart for 
-        dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    dcc.Graph(id='wordcloud', figure={}),
-                ])
-            ]),
-        ],), #width=6),
-    ],className='mb-2'),
-
-#Bar chart for tweet analysis
-dbc.Row([
-    dbc.Col([
-        dbc.Card([
-            dbc.CardBody([
-                dcc.Dropdown(
-                    id='tweet-selector-bar-chart',
-                    options=[{'label': tweet, 'value': tweet} for tweet in df['Text']],
-                    value=df['Text'][0],  # Set the initial value to the first tweet in the dataset
-                ),
-                dcc.Graph(id='bar-chart', figure={}),
-            ])
-        ]),
-    ], width=6),
-
-#Different charts for every other analysis
-        dbc.Col([
-               dbc.Card([
-                    dbc.CardBody([
-                        html.H6("Any Other Analysis"),
-                        html.Div([
-                            html.Label('Select X-axis:'),
-                            x_dropdown,
-                        ]),
-                        html.Div([
-                            html.Label('Select Y-axis:'),
-                            y_dropdown,
-                        ]),
-                        html.Div([
-                            html.Label('Select Chart Type:'),
-                            chart_type_dropdown,
-                        ]),
-                        dcc.Graph(id='chart')
-                    ])
-                ])
-        ], width=6),
-    ],className='mb-2'),
-], fluid=True)
-
-if __name__=='__main__':
-    interface.run_server(debug=False, port=8002)
 
 
 
