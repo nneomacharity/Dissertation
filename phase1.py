@@ -78,7 +78,7 @@ Dashboard.layout = html.Div(
             dbc.Row(
                 dbc.Col(
                     [
-                        html.H3("Hi! I'm Lemonade AI, let's make a juice!", style={"textAlign": "center", 'color':"white"}),  # Adding a welcome address
+                        html.H3("Hello", style={"textAlign": "center", 'color':"white"}),  # Adding a welcome address
                         html.P("Click the button below to hand me some lemons:", style={"textAlign": "center", 'color':"white"}),
                         dbc.Button("Start", id="start-button", color="primary", className="mr-2",
                                    style={"display": "block", "margin": "auto"}),

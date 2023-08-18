@@ -19,8 +19,8 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import TruncatedSVD
 import random
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-
-
+import matplotlib.pyplot as plt
+from collections import Counter
 
 # using a theme  from bootstthemes by Ann: https://hellodash.pythonanywhere.com/theme_explorer
 #picking a purple colour theme also known as PULSE
@@ -41,6 +41,9 @@ options = dict(loop=True, autoplay=True, rendererSettings=dict(preserveAspectRat
 df = pd.read_csv(('cleaned_tweets.csv'))
 
 #Generating the basic codes for each of the graphical chart backend****
+'''
+#Topic Clustering: By finding which tweets are similar to each other, I'll group together tweets that are about the same topic. 
+The goal is to understand the main topics of conversation in the dataset.
 
 #block 1 - similarity analysis analysis - scattered plot
 #Similarity  analysis *****************************************************
@@ -99,7 +102,7 @@ def update_scatter_plot(tweet_index):
     )
 
     return fig
-
+'''
 
 #block 2 - content analysis - line chart
 #content  analysis *****************************************************
@@ -113,10 +116,10 @@ def content_analysis(df, column_name, num_topics=10):
 
 # Define the callback to update the bar chart for content analysis
 @interface.callback(
-    Output('line-chart', 'figure'),
+    Output('bar-chart-top', 'figure'),
     [Input('top-words-slider', 'value')]
 )
-def update_line_chart(num_topics):
+def update_chart(num_topics):
     # Get the top trending topics based on the slider value
     trending_topics = content_analysis(df, 'Text', num_topics)
 
@@ -125,7 +128,7 @@ def update_line_chart(num_topics):
     topic_counts = topic_counts[trending_topics]
 
     # Creating the line chart
-    fig = go.Figure(data=[go.scatter.Line(x=trending_topics, y=topic_counts)])
+    fig = go.Figure(data=[go.Bar(x=trending_topics, y=topic_counts)])
 
     fig.update_layout(
         title="Top Trending Topics, Keywords and Hashtags",
@@ -138,7 +141,7 @@ def update_line_chart(num_topics):
 
 
 
-
+'''
 
 #block 3 - sentiment analysis - pie chart
 #Sentiment analysis *****************************************************
@@ -197,6 +200,32 @@ def update_pie_chart():
     fig = sentiment_analysis(df)
     return fig
 
+'''
+#block 4 - Hashtag analysis - Word cloud
+#Hashtag Analysis  *****************************************************
+
+@interface.callback(
+    Output('wordcloud', 'figure'), 
+    [Input('wordcloud', 'relayoutData')]
+)
+def update_wordcloud(_):
+    # Process the hashtags (split, count frequencies)
+    hashtags = ' '.join(df['hashtag']).split()
+    hashtag_counter = Counter(hashtags)
+    
+    # Generate the word cloud
+    wordcloud = WordCloud(width=800, height=400, background_color='white').generate_from_frequencies(hashtag_counter)
+
+    # Plot the word cloud using matplotlib
+    plt.figure(figsize=(10, 5))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis('off')
+
+    # Return the word cloud as a Plotly figure
+    wordcloud_figure = plt.gcf()
+    plt.close()  # Close the matplotlib figure to prevent it from being displayed
+
+    return wordcloud_figure
 
 #block 5 - Specific tweet analysis - bar chart
 #Specific Tweet Analysis  *****************************************************
@@ -205,31 +234,36 @@ def update_pie_chart():
     Output('bar-chart', 'figure'),
     [Input('tweet-selector-bar-chart', 'value')]
 )
+def update_bar_chart(selected_tweet):
+    selected_row = df[df['Text'] == selected_tweet].iloc[0]
+    column_names = ['LikeCount', 'ShareCount', 'ReplyCount', 'RetweetCount', 'hashtag_count']
+    
+    x_values = []
+    y_values = []
 
-def tweet_analysis(selected_tweet):
-    # Filter the dataset to get the row corresponding to the selected tweet
-    tweet_row = df[df['Text'] == selected_tweet]
+    for column in column_names:
+        x_values.append(column)
+        if column in selected_row:
+            y_values.append(selected_row[column])
+        else:
+            y_values.append(0)
 
-    # Extract the number of likes, retweets, shares, etc. from the row
-    likes = tweet_row['LikeCount'].values[0]
-    comments = tweet_row['ReplyCount'].values[0]
-    retweets = tweet_row['RetweetCount'].values[0]
-    shares = tweet_row['ShareCount'].values[0]
-    hashtags = tweet_row['hastag_counts'].values[0]
+    colors = ['blue', 'green', 'orange', 'purple', 'red']  # Specify colors for each bar
 
-    # Create a bar chart with the extracted data
-    fig = go.Figure(data=[
-        go.Bar(name='Likes', x=['Likes'], y=[likes]),
-        go.Bar(name='Retweets', x=['Retweets'], y=[retweets]),
-        go.Bar(name='Shares', x=['Shares'], y=[shares]),
-        go.Bar(name='Comments', x=['Comments'], y=[comments]),
-        go.Bar(name='Hashtags', x=['Hashtags'], y=[hashtags]),
-    ])
- 
-    # Update the layout of the chart as needed
-    fig.update_layout(title=f"Specicific Tweet Analysis: {selected_tweet}")
+    fig = {
+        'data': [go.Bar(x=x_values, y=y_values, marker_color=colors)],
+        'layout': {
+            'title': f"{selected_tweet} Insights",
+            'xaxis': {'title': 'Metrics'},
+            'yaxis': {'title': 'Count'},
+            'barmode': 'group',
+        }
+    }
 
     return fig
+
+
+
 
 
 #block 6 - other analysis - all charts
@@ -278,7 +312,7 @@ def other_analysis(x_column, y_column, chart_type):
     elif chart_type == 'pie':
         figure = go.Figure(data=[go.Pie(x=df[x_column], y=df[y_column], mode='markers')])
     elif chart_type == 'line':
-        figure = go.Figure(data=[go.Linee(x=df[x_column], y=df[y_column], mode='markers')])
+        figure = go.Figure(data=[go.layout.shape.Line(x=df[x_column], y=df[y_column], mode='markers')])
 
     
     # Customize the layout of the chart (optional)
@@ -438,6 +472,8 @@ interface.layout = dbc.Container([
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
+                    html.H5('TOPIC CLUSTERING BY SIMILARITY ANALYSIS'),
+                    html.H6('Select a tweet', style={'color': 'blue'}),
                         dcc.Dropdown(
                             id='tweet-selector',
                             options=[{'label': f'Tweet {i}', 'value': i} for i in range(len(df))],
@@ -454,7 +490,8 @@ interface.layout = dbc.Container([
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
-                    html.H6('Slide through to pick the number of top words you desire'),
+                    html.H5('CONTENT ANALYSIS'),
+                    html.H6('Slide through to pick the number of top words you desire', style={'color': 'blue'}),
                            dcc.Slider(
                                 id='top-words-slider',
                                 min=0,
@@ -464,7 +501,7 @@ interface.layout = dbc.Container([
                                 marks={i: str(i) for i in range(0, 51, 10)},
                                 tooltip={'placement': 'bottom'}
                             ),
-                            dcc.Graph(id='line-chart', figure={}),
+                            dcc.Graph(id='bar-chart-top', figure={}),
                 ])
             ]),
         ], width=6),
@@ -476,51 +513,55 @@ interface.layout = dbc.Container([
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
+                    html.H5('SENTIMENTS ANALYSIS'),
                     dcc.Graph(id='pie-chart', figure={}),
                 ])
             ]),
         ], width=6),
 
-#Word chart for 
+#Wordcloud for hashtag analysis 
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
+                    html.H5('HASHTAG ANALYSIS'),
                     dcc.Graph(id='wordcloud', figure={}),
                 ])
             ]),
         ],), #width=6),
     ],className='mb-2'),
 
-#Bar chart for tweet analysis
+#Bar chart for specific tweet analysis
 dbc.Row([
     dbc.Col([
         dbc.Card([
             dbc.CardBody([
-                dcc.Dropdown(
-                    id='tweet-selector-bar-chart',
-                    options=[{'label': tweet, 'value': tweet} for tweet in df['Text']],
-                    value=df['Text'][0],  # Set the initial value to the first tweet in the dataset
-                ),
-                dcc.Graph(id='bar-chart', figure={}),
-            ])
-        ]),
-    ], width=6),
+                html.H5('INDIVIDUAL TWEET INSIGHTS'),
+                html.H6('Select a tweet', style={'color': 'blue'}),
+                    dcc.Dropdown(
+                        id='tweet-selector-bar-chart',
+                        options=[{'label': tweet, 'value': tweet} for tweet in df['Text']],
+                        value=df['Text'][0],  # Set the initial value to the first tweet in the dataset
+                    ),
+                    dcc.Graph(id='bar-chart', figure={}),
+                ])
+            ]),
+        ], width=6),
 
 #Different charts for every other analysis
         dbc.Col([
                dbc.Card([
                     dbc.CardBody([
-                        html.H6("Any Other Analysis"),
+                        html.H5("ANY OTHER ANALYSIS"),
                         html.Div([
-                            html.Label('Select X-axis:'),
+                            html.Label('Select X-axis:', style={'color': 'blue'}),
                             x_dropdown,
                         ]),
                         html.Div([
-                            html.Label('Select Y-axis:'),
+                            html.Label('Select Y-axis:', style={'color': 'blue'}),
                             y_dropdown,
                         ]),
                         html.Div([
-                            html.Label('Select Chart Type:'),
+                            html.Label('Select Chart Type:', style={'color': 'blue'}),
                             chart_type_dropdown,
                         ]),
                         dcc.Graph(id='chart')
@@ -534,22 +575,3 @@ if __name__=='__main__':
     interface.run_server(debug=False, port=8002)
 
 
-
-''''
-@interface.callback(
-    [Output('total-likes', 'children'),
-     Output('selected-tweet-likes', 'children')],
-    [Input('tweet-selector', 'value')]
-)
-def likes(selected_tweet):
-    # Assuming 'LikeCount' column contains the number of likes for each tweet
-    if 'LikeCount' in df.columns:
-        total_likes = df['LikeCount'].sum()
-        if selected_tweet is not None:
-            likes_for_selected_tweet = df.iloc[selected_tweet]['LikeCount']
-        else:
-            likes_for_selected_tweet = 0  # Default to 0 if no tweet is selected
-        return str(total_likes), str(likes_for_selected_tweet)
-    else:
-        return 'Data Unavailable', 'Data Unavailable'
-'''
