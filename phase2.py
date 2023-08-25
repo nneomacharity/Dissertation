@@ -390,7 +390,7 @@ interface.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             dbc.Card([
-                dbc.CardImg(src='/assets/twitter-logo2.png') # 150px by 45px
+                dbc.CardImg(src='/assets/Xlogo2.png') # 150px by 45px
             ],className='mb-2'),
             dbc.Card([
                 dbc.CardBody([

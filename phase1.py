@@ -72,14 +72,14 @@ Dashboard.layout = html.Div(
     children=[
         dcc.Store(id='server-side-store', storage_type='session'),
         dbc.Container([
-            dbc.Row(dbc.Col(html.H1("Interactive Analytics of Twitter in Real Time", style={"textAlign": "center", 'color':"white"}), width=40 )),
+            dbc.Row(dbc.Col(html.H1("Revolutionalizing X Insights", style={"textAlign": "center", 'color':"white"}), width=40 )),
             html.Hr(),  # Adding a horizontal line as a divisor
 
             dbc.Row(
                 dbc.Col(
                     [
                         html.H3("Hello", style={"textAlign": "center", 'color':"white"}),  # Adding a welcome address
-                        html.P("Click the button below to hand me some lemons:", style={"textAlign": "center", 'color':"white"}),
+                        html.P("Click the button below to start:", style={"textAlign": "center", 'color':"white"}),
                         dbc.Button("Start", id="start-button", color="primary", className="mr-2",
                                    style={"display": "block", "margin": "auto"}),
                     ],
