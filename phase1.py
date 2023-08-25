@@ -371,31 +371,17 @@ def clean_and_display_tweets(n_clicks, cleaning_options):
         # Displaying the "See Dashboard" button
         return [
             dbc.Spinner([
-                dbc.Button("See Dashboard", id="see-dashboard-button", color="primary", className="mr-2", style={"display": "block", "margin": "auto"})
-            ], color="primary", type="grow"),
-            # Adding a hidden div to trigger the callback to open phase2.py
-            html.Div(id="open-phase2-div", style={"display": "none"})
+        html.A(
+            dbc.Button("See Dashboard", color="primary", className="mr-2", style={"display": "block", "margin": "auto"}),
+            href="http://127.0.0.1:8002", target="_blank"
+        )
+    ], color="primary", type="grow"),
         ]
     else:
         return None
 
-# Callback to open and run phase2.py when the "See Dashboard" button is clicked
-@Dashboard.callback(
-    Output("open-phase2-div", "children"),
-    [Input("see-dashboard-button", "n_clicks")]
-)
-def open_phase2_script(n_clicks):
-    if n_clicks and n_clicks > 0:
-        python_executable = "python"
-        phase2_script = "phase2.py"
-
-        # Running phase2.py using subprocess
-        subprocess.run([python_executable, phase2_script])
-
-    return None
-
 if __name__ == "__main__":
-    Dashboard.run_server(debug=True)
+    Dashboard.run_server(debug=False)
 
 
 

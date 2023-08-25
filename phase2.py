@@ -102,7 +102,7 @@ def update_scatter_plot(tweet_index):
     )
 
     return fig
-'''
+
 
 #block 2 - content analysis - line chart
 #content  analysis *****************************************************
@@ -141,7 +141,7 @@ def update_chart(num_topics):
 
 
 
-'''
+
 
 #block 3 - sentiment analysis - pie chart
 #Sentiment analysis *****************************************************
@@ -200,7 +200,7 @@ def update_pie_chart():
     fig = sentiment_analysis(df)
     return fig
 
-'''
+
 #block 4 - Hashtag analysis - Word cloud
 #Hashtag Analysis  *****************************************************
 
@@ -262,7 +262,7 @@ def update_bar_chart(selected_tweet):
 
     return fig
 
-
+'''
 
 
 
