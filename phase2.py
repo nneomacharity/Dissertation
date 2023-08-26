@@ -3,7 +3,7 @@
 import dash                              
 from dash import html
 from dash import dcc
-from dash.dependencies import Output, Input
+from dash.dependencies import Output, Input, State
 from datetime import date
 from dash_extensions import Lottie       
 import dash_bootstrap_components as dbc  
@@ -21,7 +21,7 @@ import random
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import matplotlib.pyplot as plt
 from collections import Counter
-
+import openai
 
 # using a theme  from bootstthemes by Ann: https://hellodash.pythonanywhere.com/theme_explorer
 #picking a purple colour theme also known as PULSE
@@ -100,8 +100,33 @@ else:
 
 
 
+#chat-gpt integration
+@interface.callback(
+    Output('chat-history', 'value'),  # Update the chat history textarea
+    Input('send-button', 'n_clicks'),
+    State('user-input', 'value'),
+    State('chat-history', 'value')  # Maintain the existing chat history
+)
+def generate_response(n_clicks, user_message, chat_history):
+    if n_clicks is None:
+        return dash.no_update  # No update until the button is clicked
+
+    if user_message:
+        conversation_history = f'{chat_history}\nUser: {user_message}\nAI:'
+        response = openai.Completion.create(
+            engine="text-davinci-003",  # Choose an appropriate engine
+            prompt=conversation_history,
+            max_tokens=50  # Adjust the response length as needed
+        )
+        ai_reply = response.choices[0].text.strip()
+        conversation_history += f' {ai_reply}\n'
+        return conversation_history
+
+    return chat_history  # If user_message is empty, return the current chat history
 
 
+# Setting up OpenAI API
+openai.api_key = "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"
 #Building the layout and interface
 interface.layout = dbc.Container([
     dbc.Row([
@@ -335,23 +360,28 @@ interface.layout = dbc.Container([
     ], className='mb-2'),
 
 #chatgpt integration
+
     dbc.Row([
         dbc.Col([], width=2),  # Empty column to create space on the left
         dbc.Col([
                dbc.Card([
                     dbc.CardBody([
-                        html.H5("ChatBot"),
+                        html.H5("ChatBot", style={'textalign': 'center'}),
                         html.H6("Ask a Question", style={'color': 'blue'}),
+                        dcc.Textarea(id='chat-history', readOnly=True),
                         html.Div([
-                            dcc.Textarea(id='chat-history', readOnly=True),
                             dcc.Input(id='user-input', type='text'),
                             html.Button('Send', id='send-button', n_clicks=0)
                         ])
                     ])
                 ]),
-        ], width=8),
-            dbc.Col([], width=2),  # Empty column to create space on the left
-    ],className='mb-2'),
+        ], width=8,
+        className='mx-auto my-auto'),
+
+        dbc.Col([], width=2),  # Empty column to create space on the left
+    ],className='h-500'),
+
+
 
 ], fluid=True)
 
