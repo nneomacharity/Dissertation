@@ -373,7 +373,7 @@ def clean_and_display_tweets(n_clicks, cleaning_options):
             dbc.Spinner([
         html.A(
             dbc.Button("See Dashboard", color="primary", className="mr-2", style={"display": "block", "margin": "auto"}),
-            href="http://127.0.0.1:8002", target="_blank"
+            href="http://localhost:8002", target="_blank"
         )
     ], color="primary", type="grow"),
         ]

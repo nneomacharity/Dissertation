@@ -1,0 +1,13 @@
+dash
+dash_bootstrap_components
+tweepy
+pycountry
+geopy
+pandas
+nltk
+dash_extensions
+plotly
+wordcloud
+matplotlib
+scikit-learn
+openAi
