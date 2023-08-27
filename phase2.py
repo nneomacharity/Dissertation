@@ -134,7 +134,7 @@ interface.layout = dbc.Container([
             dbc.Card([
                 dbc.CardBody([
                     dbc.CardLink("Go Back", target="_blank",
-                                 href="link to the csv file"
+                                 href="http://127.0.0.1:8050"
                     )
                 ])
             ]),
