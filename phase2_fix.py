@@ -23,6 +23,20 @@ import matplotlib.pyplot as plt
 from collections import Counter
 import openai
 
+import plotly.express as px
+
+import nltk
+from nltk.sentiment import SentimentIntensityAnalyzer
+import pandas as pd
+from collections import Counter
+from nltk.corpus import stopwords
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+import re
+
+nltk.download('vader_lexicon')
+nltk.download('punkt')
+nltk.download('stopwords')
 # using a theme  from bootstthemes by Ann: https://hellodash.pythonanywhere.com/theme_explorer
 #picking a purple colour theme also known as PULSE
 interface = dash.Dash(__name__, external_stylesheets=[dbc.themes.PULSE]) 
