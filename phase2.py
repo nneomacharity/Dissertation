@@ -388,4 +388,3 @@ interface.layout = dbc.Container([
 if __name__=='__main__':
     interface.run_server(debug=False, port=8002)
 
-
