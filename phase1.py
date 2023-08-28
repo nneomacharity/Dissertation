@@ -80,7 +80,7 @@ Dashboard.layout = html.Div(
             dbc.Row(
                 dbc.Col(
                     [
-                        html.H3("Hello", style={"textAlign": "center", 'color':"black"}),  # Adding a welcome address
+                        html.H3("Hello!", style={"textAlign": "center", 'color':"black"}),  # Adding a welcome address
                         html.P("Click the button below to start:", style={"textAlign": "center", 'color':"black"}),
                         dbc.Button("Start", id="start-button", color="primary", className="mr-2",
                                    style={"display": "block", "margin": "auto"}),
@@ -195,7 +195,7 @@ def retrieve_tweets(value, children):
             [dbc.Button("Retreive Tweets", id="retrieve-button", color="primary", className="mr-2", style={"display": "block", "margin": "auto"}),
             html.P(
                 "N.B: You may have to modify the API logins to retrieve large quantity of tweets.",
-                style={"fontSize": "15px", "color": "black", 'textAlign': 'center'}),
+                style={"fontSize": "15px", "color": "black", 'textAlign': 'center','font-weight': 'bold'}),
              dbc.Button("Show Tweets Info", id="show-tweets-button", color="primary", className="mr-2", 
                 style={"display": "block", "margin": "auto"})
             
@@ -281,10 +281,6 @@ def show_tweets_info(n_clicks):
         # Adding data types of each column
         info += "\n\n" + df.dtypes.to_string()  # data types of each column
 
-        # Adding count of NaN values for each column
-        nan_counts = df.isnull().sum()
-        for column, count in nan_counts.items():
-            info += f"NaN count in {column}: {count}\n"
         
         # Creating a preformatted text block to display the info
         info_block = dcc.Markdown(f"```\n{info}\n```", style={'whiteSpace': 'pre-line'})
@@ -316,7 +312,7 @@ def clean_tweets_button(n_clicks):
 def show_cleaning_options(n_clicks):
     if n_clicks and n_clicks > 0:
         return [
-            html.P("Choose one or more of these options:"),
+            html.P("Choose one or more of these options:", style={'color': 'black', 'font-weight': 'bold'}),
             dcc.Checklist(
                 id='cleaning-options',
                 options=[
@@ -327,11 +323,12 @@ def show_cleaning_options(n_clicks):
                     {'label': 'Remove URLs', 'value': 'urls'},
                     {'label': 'Remove numerical values', 'value': 'numerical_values'},
                     {'label': 'Remove non-alphabetic characters', 'value': 'non_alphabetic_characters'},
-                    {'label': 'Remove missing data', 'value': 'missing_data'},
+                    {'label': 'Remove empty rows', 'value': 'missing_data'},
                 ],
-                value=[]
+                value=[],
+                style={'color': 'white', 'font-weight': 'bold'},
             ),
-            dbc.Button("Start Preprocessing", id="preprocess-button", color="white", className="mr-2", style={"display": "block", "margin": "auto"})
+            dbc.Button("Start Preprocessing", id="preprocess-button", color="primary", className="mr-2", style={"display": "block", "margin": "auto"})
         ]
     else:
         return None
