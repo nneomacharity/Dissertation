@@ -166,8 +166,7 @@ def update_sentiment_pie(click_data):
 @interface.callback(
     Output('first-bar-chart', 'figure'),
     [Input('sentiment-dropdown', 'value'),
-    Input('top-words-sentiment-slider', 'value'),
-    Input('sentiment-pie', 'clickData')]  # Add any relevant input here
+    Input('top-words-sentiment-slider', 'value')]
 )
 # Function to create horizontal bar chart
 def update_horizontal_bar(selected_sentiment, slider_input):
@@ -234,6 +233,10 @@ def update_second_horizontal_bar(selected_row_index):
 
     # filtered_df = df[df['Sentiment'] == selected_sentiment]
     selected_comment = df.iloc[selected_row_index]
+    selected_comment['RetweetCount'] = 0
+    selected_comment['QuoteCount'] = 0
+
+
     attributes = ['ReplyCount', 'RetweetCount', 'LikeCount', 'QuoteCount']
     values = [selected_comment[attr] for attr in attributes]
 
@@ -361,12 +364,13 @@ def update_tweet_selector_options(selected_sentiment, keyword):
 )
 # Function to create horizontal bar chart
 def update_fourth_horizontal_bar(selected_row_index):
-    print("SELECTED TWEETERS",selected_row_index)
-    
     # words = selected_tweet.split()
     # word_counts = Counter(words)
 
     selected_comment = df.iloc[selected_row_index]
+
+    selected_comment['RetweetCount'] = 0
+    selected_comment['QuoteCount'] = 0
     attributes = ['ReplyCount', 'RetweetCount', 'LikeCount', 'QuoteCount']
     values = [selected_comment[attr] for attr in attributes]
 
@@ -698,6 +702,6 @@ interface.layout = dbc.Container([
 
 #Run the app
 if __name__=='__main__':
-    interface.run_server(debug=False, port=8090)
+    interface.run_server(debug=True, port=8090)
 
 
