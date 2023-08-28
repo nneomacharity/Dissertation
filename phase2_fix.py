@@ -702,6 +702,6 @@ interface.layout = dbc.Container([
 
 #Run the app
 if __name__=='__main__':
-    interface.run_server(debug=True, port=8090)
+    interface.run_server(debug=False, port=8090)
 
 
