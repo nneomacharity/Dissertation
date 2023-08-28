@@ -98,6 +98,26 @@ else:
     viewers_text = 'Data Unavailable'
 
 
+#first analysis
+# Function to get sentiment
+def get_sentiment(tweet):
+    sentiment = sia.polarity_scores(tweet)
+    if sentiment['pos'] > 0.1 and sentiment['neg'] > 0.1:
+        return 'Mixed'
+    elif sentiment['compound'] > 0.05:
+        return 'Positive'
+    elif sentiment['compound'] < -0.05:
+        return 'Negative'
+    else:
+        return 'Neutral'
+
+# Initialize the sentiment analyzer
+sia = SentimentIntensityAnalyzer()
+
+# Add sentiment to the DataFrame
+df['Sentiment'] = df['Text'].apply(get_sentiment)
+#get the number of unique sentiment - pos, neg, neutal, mixed
+unique_sentiments = df['Sentiment'].unique()
 
 
 #chat-gpt integration

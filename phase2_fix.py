@@ -1,4 +1,4 @@
-# installing and all the required libaries needed
+# installing  all the required libaries needed
 
 import dash                              
 from dash import html
