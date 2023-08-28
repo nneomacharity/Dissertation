@@ -22,21 +22,9 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import matplotlib.pyplot as plt
 from collections import Counter
 import openai
-
-import plotly.express as px
-
 import nltk
-from nltk.sentiment import SentimentIntensityAnalyzer
-import pandas as pd
-from collections import Counter
-from nltk.corpus import stopwords
-from wordcloud import WordCloud
-import matplotlib.pyplot as plt
-import re
 
-nltk.download('vader_lexicon')
-nltk.download('punkt')
-nltk.download('stopwords')
+
 # using a theme  from bootstthemes by Ann: https://hellodash.pythonanywhere.com/theme_explorer
 #picking a purple colour theme also known as PULSE
 interface = dash.Dash(__name__, external_stylesheets=[dbc.themes.PULSE]) 
@@ -53,6 +41,7 @@ options = dict(loop=True, autoplay=True, rendererSettings=dict(preserveAspectRat
 
 #reading the cleaned tweets csv file
 df = pd.read_csv('cleaned_tweets.csv')
+sentiment_df = pd.read_csv('sentiment_filtered.csv')
 
 #Top Section------------------------------
 
@@ -167,13 +156,17 @@ def update_sentiment_pie(click_data):
 @interface.callback(
     Output('first-bar-chart', 'figure'),
     [Input('sentiment-dropdown', 'value'),
-    Input('top-words-sentiment-slider', 'value')]  # Add any relevant input here
+    Input('top-words-sentiment-slider', 'value'),
+    Input('sentiment-pie', 'clickData')]  # Add any relevant input here
 )
 # Function to create horizontal bar chart
 def update_horizontal_bar(selected_sentiment, slider_input):
     print()
 
     filtered_df = df[df['Sentiment'] == selected_sentiment]
+
+    
+    filtered_df.to_csv('sentiment_filtered.csv', index = False)
 
     # Plot most frequent words
     words = ' '.join(filtered_df['Text']).split()
@@ -235,9 +228,6 @@ def update_second_horizontal_bar(selected_row_index):
 
     # filtered_df = df[df['Sentiment'] == selected_sentiment]
     selected_comment = df.iloc[selected_row_index]
-    selected_comment['RetweetCount'] = 0
-    selected_comment['QuoteCount'] = 0
-
     attributes = ['ReplyCount', 'RetweetCount', 'LikeCount', 'QuoteCount']
     values = [selected_comment[attr] for attr in attributes]
 
@@ -366,15 +356,12 @@ def update_tweet_selector_options(selected_sentiment, keyword):
 # Function to create horizontal bar chart
 def update_fourth_horizontal_bar(selected_row_index):
     print("SELECTED TWEETERS",selected_row_index)
-
+    
+    # words = selected_tweet.split()
+    # word_counts = Counter(words)
 
     selected_comment = df.iloc[selected_row_index]
-    selected_comment['RetweetCount'] = 0
-    selected_comment['QuoteCount'] = 0
-
     attributes = ['ReplyCount', 'RetweetCount', 'LikeCount', 'QuoteCount']
-
-
     values = [selected_comment[attr] for attr in attributes]
 
     # sorted_word_counts = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)
@@ -564,10 +551,10 @@ interface.layout = dbc.Container([
                     dcc.Slider(
                         id='top-words-sentiment-slider',
                         min=5,
-                        max=20,
-                        step=2,
-                        value=5,
-                        marks={i: str(i) for i in range(0, 21, 5)},
+                        max=50,
+                        step=1,
+                        value=10,
+                        marks={i: str(i) for i in range(0, 51, 10)},
                         tooltip={'placement': 'bottom'}
                     ),
                     dcc.Graph(id='first-bar-chart'),
@@ -590,8 +577,8 @@ interface.layout = dbc.Container([
                     html.H6('Select a tweet', style={'color': 'blue'}),
                     dcc.Dropdown(
                         id='tweet-selector-bar-chart',
-                        options=[],  # Placeholder for options, will be populated by the callback
-                        value="",    # Placeholder for value, will be set by the callback
+                        options=[{'label': tweet, 'value': tweet} for tweet in sentiment_df['Text']],
+                        value=df['Text'][0],  # Set the initial value to the first tweet in the dataset
                     ),
                     dcc.Graph(id='second-bar-chart', figure={}),
                 ])
@@ -600,21 +587,19 @@ interface.layout = dbc.Container([
     ], className='mb-2'),
 
 
-# 3rd filtering
+#3rd filtering
     dbc.Row([
         dbc.Col([], width=3),  # Empty column to create space on the left
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
                     html.H5('Input a keyword'),
-                    dcc.Input(id='keyword-input', type='text', placeholder='Enter a keyword'),
-                    html.Div(id='validation-output', style={'color': 'red'}),
-                    dbc.Button('Search', id='search-filter-button', color='primary')
+#attach an input box for keyword
                 ])
             ]),
         ], width=6),
          dbc.Col([], width=3),  # Empty column to create space on the right
-    ], className='mb-2'),
+    ],className='mb-2'),
 
 #filter out tweets having the keyword, save to a new csv file and then display the following
 
@@ -627,12 +612,12 @@ interface.layout = dbc.Container([
                     html.H5('Top Words surrounding the Keyword typed In'),
                     html.H6('Slide through to pick the number of top words you desire', style={'color': 'blue'}),
                     dcc.Slider(
-                        id='top-keyword-sliders',
-                        min=5,
-                        max=20,
-                        step=2,
-                        value=5,
-                        marks={i: str(i) for i in range(0, 21, 5)},
+                        id='top-words-sliders',
+                        min=0,
+                        max=50,
+                        step=1,
+                        value=10,
+                        marks={i: str(i) for i in range(0, 51, 10)},
                         tooltip={'placement': 'bottom'}
                     ),
                     dcc.Graph(id='third-bar-chart', figure={}),
@@ -655,9 +640,9 @@ interface.layout = dbc.Container([
                     html.H5('Evaluation Metrics of Tweets'),
                     html.H6('Select a tweet', style={'color': 'blue'}),
                     dcc.Dropdown(
-                        id='tweet-keyword-selector-bar-chart',
-                        options=[],  # Placeholder for options, will be populated by the callback
-                        value='',    # Placeholder for value, will be set by the callback
+                        id='tweet-selector-bar-charts',
+                        options=[{'label': tweet, 'value': tweet} for tweet in df['Text']],
+                        value=df['Text'][0],  # Set the initial value to the first tweet in the dataset
                     ),
                     dcc.Graph(id='fourth-bar-chart', figure={}),
                 ])

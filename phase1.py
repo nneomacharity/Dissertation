@@ -57,7 +57,7 @@ auth.set_access_token(access_key, access_secret)
 theapi = tweepy.API(auth)
 
 # Building the interface of the welcome page using Dash
-Dashboard = dash.Dash(__name__, suppress_callback_exceptions=True, external_stylesheets=[dbc.themes.PULSE],
+Dashboard = dash.Dash(__name__, suppress_callback_exceptions=True, external_stylesheets=[dbc.themes.CERULEAN],
                       meta_tags=[{'name': 'viewport',
                                   'content': 'width=device-width, initial-scale=1.0'}]
                       )
@@ -65,21 +65,23 @@ Dashboard = dash.Dash(__name__, suppress_callback_exceptions=True, external_styl
 # Adding a background image to the welcome page
 Dashboard.layout = html.Div(
     style={
-        'background-image': 'url(https://images.unsplash.com/photo-1683560044376-6ac69ce791c5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1375&q=80)',
+        'background-image': 'url(https://images.unsplash.com/photo-1465056836041-7f43ac27dcb5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80)',
         'background-size': 'cover',
-        'height': '100vh',
+        'background-repeat': 'no-repeat',
+        'background-attachment': 'fixed', #This makes sure the background image doesn't scroll */
+        'min-height': '100vh',
     },
     children=[
         dcc.Store(id='server-side-store', storage_type='session'),
         dbc.Container([
-            dbc.Row(dbc.Col(html.H1("Revolutionalizing X Insights", style={"textAlign": "center", 'color':"white"}), width=40 )),
+            dbc.Row(dbc.Col(html.H1("Retrieval Section For Generating Tweets Insights", style={"textAlign": "center", 'color':"black", 'width':"100"}), width=12 )),
             html.Hr(),  # Adding a horizontal line as a divisor
 
             dbc.Row(
                 dbc.Col(
                     [
-                        html.H3("Hello", style={"textAlign": "center", 'color':"white"}),  # Adding a welcome address
-                        html.P("Click the button below to start:", style={"textAlign": "center", 'color':"white"}),
+                        html.H3("Hello!", style={"textAlign": "center", 'color':"black"}),  # Adding a welcome address
+                        html.P("Click the button below to start:", style={"textAlign": "center", 'color':"black"}),
                         dbc.Button("Start", id="start-button", color="primary", className="mr-2",
                                    style={"display": "block", "margin": "auto"}),
                     ],
@@ -97,9 +99,11 @@ Dashboard.layout = html.Div(
             ),
 
             dbc.Row(
-                dbc.Col(id="date-section", className="mt-4", style={"margin": "auto"}),
-                className="justify-content-center"
-            ),
+            
+                dbc.Col(id="date-section", width=8, className="mt-4", style={"margin": "auto"}),
+                
+             className="justify-content-center"
+             ),
 
             dbc.Row(
                 dbc.Col(id="retrieve-section", className="mt-4", style={"margin": "auto"}),
@@ -110,9 +114,13 @@ Dashboard.layout = html.Div(
                 dbc.Col(id="output-section", className="mt-4", style={"margin": "auto"}),
                 className="justify-content-center"
             ),
-
+            dcc.Loading(
+                id="loading-icon",
+                children=[html.Div(id="info-section")],
+                type="default"
+            ),
             dbc.Row(
-                dbc.Col(id="info-section", className="mt-4", style={"margin": "auto"}),
+                dbc.Col(id="info-sectionn", className="mt-4", style={"margin": "auto"}),
                 className="justify-content-center"
             ),
             dbc.Row(
@@ -130,7 +138,7 @@ Dashboard.layout = html.Div(
                 children=html.Div(id="dashboard-button-section", className="mt-4", style={"margin": "auto"})
             ),
             className="justify-content-center"
-        ),
+            ),
 
         ], style={"max-width": "500px", "margin": "auto"})
     ]
@@ -163,8 +171,8 @@ def show_date(value, children):
                 dbc.Row([
                     dbc.Col([
                         dcc.DatePickerRange(id='date-picker-start', className="mb-2",  start_date_placeholder_text='Tweets from',
-                        end_date_placeholder_text='Till'),
-                    ], width=12, className="m-auto")
+                        end_date_placeholder_text='Tweets Till'),
+                    ], width=16, className="m-auto")
                 ]),
                 dbc.Row([
                     dbc.Col([
@@ -187,7 +195,7 @@ def retrieve_tweets(value, children):
             [dbc.Button("Retreive Tweets", id="retrieve-button", color="primary", className="mr-2", style={"display": "block", "margin": "auto"}),
             html.P(
                 "N.B: You may have to modify the API logins to retrieve large quantity of tweets.",
-                style={"fontSize": "13px", "color": "white", 'textAlign': 'center'}),
+                style={"fontSize": "15px", "color": "black", 'textAlign': 'center','font-weight': 'bold'}),
              dbc.Button("Show Tweets Info", id="show-tweets-button", color="primary", className="mr-2", 
                 style={"display": "block", "margin": "auto"})
             
@@ -206,6 +214,7 @@ def retrieve_tweets(value, children):
                      State('date-picker-start', 'end_date'),
                      State('tweets-input', 'value'),
                      State('server-side-store', 'data')])
+#function for tweet retieval
 def retrieve_and_store_tweets(n_clicks, keyword, country, start_date, end_date, tweets_number, data):
     if n_clicks and keyword and country and start_date and end_date and tweets_number:
         data = data or {}
@@ -256,9 +265,9 @@ def display_output(ts, data):
         return html.P("Tweets retrieved and saved.")
     else:
         return None
-# Callback to  show a tweet info button
+# Callback to show a tweet info button
 @Dashboard.callback(
-    Output("info-section", "children"),
+    Output("info-sectionn", "children"),
     [Input("show-tweets-button", "n_clicks")]
 )
 def show_tweets_info(n_clicks):
@@ -272,10 +281,6 @@ def show_tweets_info(n_clicks):
         # Adding data types of each column
         info += "\n\n" + df.dtypes.to_string()  # data types of each column
 
-        # Adding count of NaN values for each column
-        nan_counts = df.isnull().sum()
-        for column, count in nan_counts.items():
-            info += f"NaN count in {column}: {count}\n"
         
         # Creating a preformatted text block to display the info
         info_block = dcc.Markdown(f"```\n{info}\n```", style={'whiteSpace': 'pre-line'})
@@ -299,7 +304,7 @@ def clean_tweets_button(n_clicks):
     else:
         return None
 
-# Show cleaning options and 'Preprocess' button
+# Showing the cleaning options and  the'Preprocess' button
 @Dashboard.callback(
     Output("cleaning-options-section", "children"),
     [Input('clean-tweets-button', 'n_clicks')]
@@ -307,20 +312,21 @@ def clean_tweets_button(n_clicks):
 def show_cleaning_options(n_clicks):
     if n_clicks and n_clicks > 0:
         return [
-            html.P("Choose one or more of these options:"),
+            html.P("Choose one or more of these options:", style={'color': 'black', 'font-weight': 'bold'}),
             dcc.Checklist(
                 id='cleaning-options',
                 options=[
-                    {'label': 'Convert tweet to lowercase', 'value': 'lowercase'},
+                    {'label': 'Convert tweet to lowercase', 'value': 'lowercase'}, # indicating the possible 
                     {'label': 'Remove punctuations', 'value': 'punctuations'},
                     {'label': 'Remove stopwords', 'value': 'stopwords'},
                     {'label': 'Remove digits', 'value': 'digits'},
                     {'label': 'Remove URLs', 'value': 'urls'},
                     {'label': 'Remove numerical values', 'value': 'numerical_values'},
                     {'label': 'Remove non-alphabetic characters', 'value': 'non_alphabetic_characters'},
-                    {'label': 'Remove missing data', 'value': 'missing_data'},
+                    {'label': 'Remove empty rows', 'value': 'missing_data'},
                 ],
-                value=[]
+                value=[],
+                style={'color': 'white', 'font-weight': 'bold'},
             ),
             dbc.Button("Start Preprocessing", id="preprocess-button", color="primary", className="mr-2", style={"display": "block", "margin": "auto"})
         ]
@@ -386,3 +392,5 @@ if __name__ == "__main__":
 
 
 
+#new things to add
+#cleaning option for filtering out the keyword used for retrieval

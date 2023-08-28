@@ -102,31 +102,34 @@ else:
 
 #chat-gpt integration
 @interface.callback(
-    Output('chat-history', 'value'),  # Update the chat history textarea
-    Input('send-button', 'n_clicks'),
-    State('user-input', 'value'),
-    State('chat-history', 'value')  # Maintain the existing chat history
+    Output('chat-history', 'value'),
+    [Input('send-button', 'n_clicks')],
+    [State('user-input', 'value'),
+     State('chat-history', 'value')]
 )
-def generate_response(n_clicks, user_message, chat_history):
-    if n_clicks is None:
-        return dash.no_update  # No update until the button is clicked
+def update_chat(n, user_message, chat_history):
+    if not n or not user_message:
+        # No button clicks or empty message, don't update
+        return chat_history
 
-    if user_message:
-        conversation_history = f'{chat_history}\nUser: {user_message}\nAI:'
-        response = openai.Completion.create(
-            engine="text-davinci-003",  # Choose an appropriate engine
-            prompt=conversation_history,
-            max_tokens=50  # Adjust the response length as needed
-        )
-        ai_reply = response.choices[0].text.strip()
-        conversation_history += f' {ai_reply}\n'
-        return conversation_history
+    # Interact with OpenAI and get a response
+    response_message = "Sorry, I couldn't understand that."  # Default response
+    
+    try:
+        response = openai.Completion.create(engine="davinci", prompt=user_message, max_tokens=100)
+        response_message = response.choices[0].text.strip()
+    except Exception as e:
+        print(f"Error with OpenAI: {e}")
 
-    return chat_history  # If user_message is empty, return the current chat history
+    # Now, append the user's message and the bot's response to the chat history
+    updated_history = (chat_history or "") + f"\nUser: {user_message}\nBot: {response_message}"
 
-
+    return updated_history
+print("Callback triggered")   
 # Setting up OpenAI API
 openai.api_key = "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"
+
+
 #Building the layout and interface
 interface.layout = dbc.Container([
     dbc.Row([
@@ -363,28 +366,36 @@ interface.layout = dbc.Container([
 
     dbc.Row([
         dbc.Col([], width=2),  # Empty column to create space on the left
+
         dbc.Col([
-               dbc.Card([
-                    dbc.CardBody([
-                        html.H5("ChatBot", style={'textalign': 'center'}),
-                        html.H6("Ask a Question", style={'color': 'blue'}),
-                        dcc.Textarea(id='chat-history', readOnly=True),
-                        html.Div([
-                            dcc.Input(id='user-input', type='text'),
-                            html.Button('Send', id='send-button', n_clicks=0)
-                        ])
-                    ])
-                ]),
-        ], width=8,
-        className='mx-auto my-auto'),
+            dbc.Card([
+                dbc.CardBody([
+                    html.H4("ChatGPT", style={'textAlign': 'center', 'margin-bottom': '20px'}),  # Increase the size for prominence and add margin for spacing
+                    
+                    html.Div("Ask a Question", style={'color': 'blue', 'textAlign': 'center', 'margin-bottom': '10px'}),  # Using a div to allow for more styling flexibility
+                    
+                    dcc.Textarea(
+                        id='chat-history',
+                        readOnly=True,
+                        style={"width": "100%", "height": "250px", "margin-bottom": '10px'}
+                    ),
+                    
+                    html.Div([
+                        dcc.Input(
+                            id='user-input',
+                            type='text',
+                            placeholder='Type your message here...',
+                            style={"width": "80%", "display": "inline-block"}  # Adjusted to 80% width for a little spacing
+                        ),
+                        html.Button('Send', id='send-button', n_clicks=0, style={"width": "18%", "display": "inline-block", "margin-left": "2%"})
+                    ], style={"width": "100%", "textAlign": "center"})  # Center align the input and button
+                ])
+            ]),
+        ], width=8, className='mx-auto my-auto'),
 
-        dbc.Col([], width=2),  # Empty column to create space on the left
-    ],className='h-500'),
-
-
-
-], fluid=True)
-
+        dbc.Col([], width=2),  # Empty column to create space on the right
+    ], className='h-500'),
+])
 if __name__=='__main__':
     interface.run_server(debug=False, port=8002)
 
