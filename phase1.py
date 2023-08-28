@@ -16,6 +16,8 @@ import re
 import string
 import nltk
 from nltk.corpus import stopwords
+from nltk.corpus import stopwords
+stop = stopwords.words('english')
 from nltk.tokenize import word_tokenize
 import nltk
 import subprocess
@@ -332,27 +334,40 @@ def show_cleaning_options(n_clicks):
         ]
     else:
         return None
-
-
+stop = stopwords.words('english')
 def clean_tweets(df, options):
+    # Check if 'Text' column exists
+    if 'Text' not in df.columns:
+        raise ValueError("The expected 'Text' column is missing in the dataframe.")
+    
+    # Convert tweet to lowercase
     if 'lowercase' in options:
         df['Text'] = df['Text'].str.lower()
+    
+    # Remove punctuations
     if 'punctuations' in options:
-        df['Text'] = df['Text'].str.replace('[^\w\s]', '')
+        df['Text'] = df['Text'].str.replace('[^\w\s]', '', regex=True)
+    
+    # Remove stopwords
     if 'stopwords' in options:
-        from nltk.corpus import stopwords
-        stop = stopwords.words('english')
         df['Text'] = df['Text'].apply(lambda x: ' '.join([word for word in x.split() if word not in (stop)]))
-    if 'digits' in options:
-        df['Text'] = df['Text'].str.replace('\d+', '')
+    
+    # Remove URLs
     if 'urls' in options:
         df['Text'] = df['Text'].replace(to_replace=r'http\S+', value='', regex=True).replace(to_replace=r'www\S+', value='', regex=True)
-    if 'numerical_values' in options:
-        df['Text'] = df['Text'].str.replace('\d+', '')
+    
+    # Remove digits and numerical values (combined both checks to remove redundancy)
+    if 'digits' in options or 'numerical_values' in options:
+        df['Text'] = df['Text'].str.replace('\d+', '', regex=True)
+    
+    # Remove non-alphabetic characters
     if 'non_alphabetic_characters' in options:
-        df['Text'] = df['Text'].str.replace('[^a-zA-Z]', ' ')
+        df['Text'] = df['Text'].str.replace('[^a-zA-Z]', ' ', regex=True)
+    
+    # Remove empty rows or rows with missing 'Text' data
     if 'missing_data' in options:
         df.dropna(subset=['Text'], inplace=True)
+    
     return df
 
 
