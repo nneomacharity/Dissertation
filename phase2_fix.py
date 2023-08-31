@@ -206,7 +206,7 @@ def update_sentiment_word_cloud(selected_sentiment):
     
     # Convert wordcloud image to Plotly figure
     wordcloud_fig = px.imshow(wordcloud.to_array(), binary_string=True)
-    wordcloud_fig.update_layout(title="add a title", xaxis={'visible': False}, yaxis={'visible': False})
+    wordcloud_fig.update_layout(title="", xaxis={'visible': False}, yaxis={'visible': False})
     
     return wordcloud_fig
 
@@ -337,7 +337,7 @@ def update_sentiment_word_cloud(selected_sentiment, keyword):
     
     # Convert wordcloud image to Plotly figure
     wordcloud_fig = px.imshow(wordcloud.to_array(), binary_string=True)
-    wordcloud_fig.update_layout(title="add a title", xaxis={'visible': False}, yaxis={'visible': False})
+    wordcloud_fig.update_layout(title="", xaxis={'visible': False}, yaxis={'visible': False})
     
     return wordcloud_fig
 
