@@ -54,7 +54,7 @@ options = dict(loop=True, autoplay=True, rendererSettings=dict(preserveAspectRat
 #reading the cleaned tweets csv file
 df = pd.read_csv('cleaned_tweets.csv')
 
-#Top Section------------------------------
+#The codes for Top Seion (total tweets metrics)-----------------------------
 
 #Likes
 # Checking if the 'LikesCount' column exists in the DataFrame
@@ -113,10 +113,10 @@ else:
 
 
 #-------------------------------------------------------------
-#PLEASE PLACE ALL MAIN PYTHON CODES HERE
+#MAIN PYTHON CODES
 #-------------------------------------------------------------
 
-# Function to get sentiment
+# Function to get sentiments of tweets
 def get_sentiment(tweet):
     sentiment = sia.polarity_scores(tweet)
     if sentiment['pos'] > 0.1 and sentiment['neg'] > 0.1:
@@ -128,19 +128,19 @@ def get_sentiment(tweet):
     else:
         return 'Neutral'
 
-# Initialize the sentiment analyzer
+# Initializing the sentiment analyzer
 sia = SentimentIntensityAnalyzer()
 
-# Add sentiment to the DataFrame
+# Adding sentiments to the DataFrame
 df['Sentiment'] = df['Text'].apply(get_sentiment)
 #get the number of unique sentiment - pos, neg, neutal, mixed
 unique_sentiments = df['Sentiment'].unique()
 
 #-----------------------------------------------------------
-#CALL BACKS AND FUNCTIONS
+#CALL BACKS for the UI
 #-----------------------------------------------------------
 
-#PIE CHART------------------------------------------
+#PIE CHART fos 4 degrees of sentiments------------------------------------------
 # Callback to update the pie chart figure & horizontal bar chart
 @interface.callback(
     Output('sentiment-pie', 'figure'),
@@ -159,21 +159,22 @@ def update_sentiment_pie(click_data):
     fig.update_traces(textinfo='percent+label')
     return fig
 
+#----------------------------------------------------------
+#First Filtering------------------------------------------
+#------------------------------------------------------------------------------
 
-#------------------------------------------------------------------------------
-#BASED ON SENTIMENT TYPE-------------------------------------------------------
-#------------------------------------------------------------------------------
+#when a sentiment is picked
 @interface.callback(
     Output('first-bar-chart', 'figure'),
     [Input('sentiment-dropdown', 'value'),
     Input('top-words-sentiment-slider', 'value')]
 )
-# Function to create horizontal bar chart
+# Function to create horizontal bar chart for topwords found in sentiment
 def update_horizontal_bar(selected_sentiment, slider_input):
 
     filtered_df = df[df['Sentiment'] == selected_sentiment]
 
-    # Plot most frequent words
+    # Plotting most frequent words
     words = ' '.join(filtered_df['Text']).split()
     word_counts = Counter(words)
     sorted_word_counts = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)
@@ -197,21 +198,21 @@ def update_horizontal_bar(selected_sentiment, slider_input):
     Output('first-wordcloud', 'figure'),
     Input('sentiment-dropdown', 'value')  # Add any relevant input here
 )
-# Function to create word cloud
+# Function to create a word cloud for all hashtags found in the sentiment
 def update_sentiment_word_cloud(selected_sentiment):
 
     all_hashtag = ' '.join(df[df['Sentiment'] == selected_sentiment]['hashtag'])
     wordcloud = WordCloud(width=1000, height=800, background_color='white',
                           colormap='viridis', contour_color='steelblue').generate(all_hashtag)
     
-    # Convert wordcloud image to Plotly figure
+    # Converting wordcloud image to Plotly figure
     wordcloud_fig = px.imshow(wordcloud.to_array(), binary_string=True)
     wordcloud_fig.update_layout(title="", xaxis={'visible': False}, yaxis={'visible': False})
     
     return wordcloud_fig
 
 
-# Callback to update tweet selector dropdown options and value
+# Callback to update tweet selector dropdown options from the selected sentiment
 
 @interface.callback(
     [Output('tweet-selector-bar-chart', 'options'), Output('tweet-selector-bar-chart', 'value')],
@@ -227,29 +228,16 @@ def update_tweet_selector_options(selected_sentiment):
     Output('second-bar-chart', 'figure'),
     Input('tweet-selector-bar-chart', 'value')  # Add any relevant input here
 )
-# Function to create horizontal bar chart
+# Function to create horizontal bar chart on metrics for tweet selected
 def update_second_horizontal_bar(selected_row_index):
-    # print("SELECTED TWEETERS",selected_row_index)
-
-    # filtered_df = df[df['Sentiment'] == selected_sentiment]
+   
     selected_comment = df.iloc[selected_row_index]
     selected_comment['RetweetCount'] = 0
     selected_comment['QuoteCount'] = 0
 
-
     attributes = ['ReplyCount', 'RetweetCount', 'LikeCount', 'QuoteCount']
     values = [selected_comment[attr] for attr in attributes]
 
-    
-    # filtered_df.to_csv('sentiment_filtered.csv', index = False)
-
-    # Plot most frequent words
-    
-    # words = selected_tweet.split()
-    # word_counts = Counter(words)
-
-    # sorted_word_counts = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)
-    # sentiment_top_words, sentiment_frequencies = zip(*sorted_word_counts)
 
     fig = px.bar(
         x=attributes,
@@ -266,7 +254,13 @@ def update_second_horizontal_bar(selected_row_index):
     return fig
 
 
-# Define callback to validate and process the input
+
+#----------------------------------------------------------
+#2nd Filtering------------------------------------------
+#----------------------------------------------------------
+
+# Function for the input button
+# Callback to validate and process the input when it is typed in
 @interface.callback(
     Output('validation-output', 'children'),
     Input('keyword-input', 'value')
@@ -275,29 +269,28 @@ def validate_input(keyword):
     if keyword is None:
         return None
     if re.match(r'^[a-zA-Z\s]*$', keyword):
-        # Call your function with the keyword for further processing
+        # Function with the keyword for further processing
         return keyword
     else:
         return 'Invalid input: Enter only words (no numbers or symbols)'
 
-#---------------------------------------------------------
-#BASED ON KEYWORD
-#----------------------------------------------------------
+#When Keyword is typed
+
 @interface.callback(
     Output('third-bar-chart', 'figure'),
     [Input('sentiment-dropdown', 'value'),
     Input('validation-output', 'children'),
     Input('top-keyword-sliders', 'value')]  # Add any relevant input here
 )
-# Function to create horizontal bar chart
+# Function to create horizontal bar chart for topwords 
 def update_keyword_horizontal_bar(selected_sentiment, keyword, slider_input):
 
     filtered_df = df[df['Sentiment'] == selected_sentiment]
 
-    # Filter the DataFrame based on the search text
+    # Filtering the DataFrame based on the search text
     filtered_df = filtered_df[filtered_df['Text'].str.contains(keyword, case=False)]
 
-    # Plot most frequent words
+    # Plotting most frequent words
     words = ' '.join(filtered_df['Text']).split()
     word_counts = Counter(words)
     sorted_word_counts = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)
@@ -328,14 +321,14 @@ def update_sentiment_word_cloud(selected_sentiment, keyword):
 
     filtered_df = df[df['Sentiment'] == selected_sentiment]
 
-    # Filter the DataFrame based on the search text
+    # Filtering the DataFrame based on the search text
     filtered_df = filtered_df[filtered_df['Text'].str.contains(keyword, case=False)]
 
     all_hashtag = ' '.join(filtered_df['hashtag'])
     wordcloud = WordCloud(width=1000, height=800, background_color='white',
                           colormap='viridis', contour_color='steelblue').generate(all_hashtag)
     
-    # Convert wordcloud image to Plotly figure
+    # Converting wordcloud image to Plotly figure
     wordcloud_fig = px.imshow(wordcloud.to_array(), binary_string=True)
     wordcloud_fig.update_layout(title="", xaxis={'visible': False}, yaxis={'visible': False})
     
@@ -362,7 +355,7 @@ def update_tweet_selector_options(selected_sentiment, keyword):
     Output('fourth-bar-chart', 'figure'),
     Input('tweet-keyword-selector-bar-chart', 'value')  # Add any relevant input here
 )
-# Function to create horizontal bar chart
+# Function to create horizontal bar chart for tweet metrics
 def update_fourth_horizontal_bar(selected_row_index):
     # words = selected_tweet.split()
     # word_counts = Counter(words)
@@ -424,6 +417,7 @@ def generate_response(n_clicks, user_message, chat_history):
 
 # Setting up OpenAI API
 openai.api_key = "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"
+
 #Building the layout and interface
 interface.layout = dbc.Container([
     dbc.Row([
@@ -507,11 +501,12 @@ interface.layout = dbc.Container([
 
 
     
-#Laying Out the Graphs
-#1st filtering
-#Scatter Plot  for Sentiments Analysis
+#Laying Out the Graphs/ Building the Interface
+#1st row
+#Pie Chart  for Sentiments Analysis
 
     dbc.Row([
+        dbc.Col([], width=3),  # Empty column to create space on the left
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
@@ -521,17 +516,10 @@ interface.layout = dbc.Container([
             ]),
         ], width=6),
 
-        dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    html.H5('Clusters of Sentiments'),
-                    dcc.Graph(id='pie-chart', figure={}),
-                ])
-            ]),
-        ], width=6),
+        dbc.Col([], width=3),  # Empty column to create space on the right
     ], className='mb-2'),
 
-#new row
+#second row
     dbc.Row([
         dbc.Col([], width=3),  # Empty column to create space on the left
         
@@ -552,6 +540,7 @@ interface.layout = dbc.Container([
         dbc.Col([], width=3),  # Empty column to create space on the right
     ], className='mb-2'),
 
+#third row
      dbc.Row([
         dbc.Col([
             dbc.Card([
@@ -572,14 +561,7 @@ interface.layout = dbc.Container([
             ]),
         ], width=4),
         
-        dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    html.H5('Hashtags Used in Selected Sentiment'),
-                    dcc.Graph(id='first-wordcloud', figure={}),
-                ])
-            ]),
-        ], width=4),
+
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
@@ -593,11 +575,24 @@ interface.layout = dbc.Container([
                     dcc.Graph(id='second-bar-chart', figure={}),
                 ])
             ]),
-        ], width=4),
+        ], width=8),
     ], className='mb-2'),
 
+#fourth row
+    dbc.Row([
+        dbc.Col([], width=2),  # Empty column to create space on the left
+        dbc.Col([
+            dbc.Card([
+                dbc.CardBody([
+                    html.H5('Hashtags Used in Selected Sentiment'),
+                    dcc.Graph(id='first-wordcloud', figure={}),
+                ])
+            ]),
+        ], width=8),
+        dbc.Col([], width=2),  # Empty column to create space on the right
+    ], className='mb-2'),
 
-# 3rd filtering
+# fifth row
     dbc.Row([
         dbc.Col([], width=3),  # Empty column to create space on the left
         dbc.Col([
@@ -615,7 +610,7 @@ interface.layout = dbc.Container([
 
 #filter out tweets having the keyword, save to a new csv file and then display the following
 
-
+# sixth row
  #Barchart for top keywords in tweets having xxx keyword' from 'selected sentiments'
     dbc.Row([
         dbc.Col([
@@ -637,14 +632,6 @@ interface.layout = dbc.Container([
             ]),
         ], width=4),
         
-        dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    html.H5('Hashtags used in Tweets having the Keyword'),
-                    dcc.Graph(id='second-wordcloud', figure={}),
-                ])
-            ]),
-        ], width=4),
         
         dbc.Col([
             dbc.Card([
@@ -659,8 +646,22 @@ interface.layout = dbc.Container([
                     dcc.Graph(id='fourth-bar-chart', figure={}),
                 ])
             ]),
-        ], width=4),
+        ], width=8),
     ], className='mb-2'),
+# seventh row
+    dbc.Row([
+        dbc.Col([], width=1),  # Empty column to create space on the left
+        dbc.Col([
+            dbc.Card([
+                dbc.CardBody([
+                    html.H5('Hashtags used in Tweets having the Keyword'),
+                    dcc.Graph(id='second-wordcloud', figure={}),
+                ])
+            ]),
+        ], width=10),
+        dbc.Col([], width=1),  # Empty column to create space on the right
+    ], className='mb-2'),
+
 
 #chatgpt integration
 
@@ -690,17 +691,7 @@ interface.layout = dbc.Container([
 
 
 
-# Tweets insight from selected sentiment
-#tweet-selector-bar-chart
-
-# @interface.callback(
-#     Output('second-bar-chart', 'figure'),
-#     [Input('tweet-selector-bar-chart', 'value')]  # Add any relevant input here
-# )
-
-# def update_bar_chart(selected_text):
-
-#Run the app
+#Running the app
 if __name__=='__main__':
     interface.run_server(debug=False, port=8090)
 
