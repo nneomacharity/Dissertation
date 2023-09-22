@@ -1,5 +1,7 @@
 This step-by-step list should help simplify the process of setting up and running the program.
-#CREATE NEW ENVIRONMENT IF YOU HAVE NOT PREVIOUSLY
+
+
+#CREATE A NEW ENVIRONMENT
 python -m venv myenv
 
 
