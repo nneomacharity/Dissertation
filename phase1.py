@@ -15,6 +15,7 @@ from datetime import datetime as dt
 import re
 import string
 import nltk
+nltk.download('stopwords')
 from nltk.corpus import stopwords
 from nltk.corpus import stopwords
 stop = stopwords.words('english')
@@ -48,10 +49,10 @@ def do_geocode(address):
         return do_geocode(address)
 
 # Connecting to the Twitter API using credentials provided from my developer account
-consumer_key = 'PuQc9u7k0aAWBeC5iuvA50phL'
-consumer_secret = 'gHnv2OsSMaYM0TAjVhksWcw7JER0f5Ur1aGJnXje5WQS5iUJm1'
-access_key = '924681622288510980-AkQbiEXVKODsfIECQgQPMNjworq8dvG'
-access_secret = 'CuIqjmoDO2UisyZHDi8nZqb8d0expwedM6eWQGGsCb7oO'
+consumer_key = 'xxx'
+consumer_secret = 'xxx'
+access_key = 'xxx'
+access_secret = 'xxx'
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_key, access_secret)
@@ -403,9 +404,3 @@ def clean_and_display_tweets(n_clicks, cleaning_options):
 
 if __name__ == "__main__":
     Dashboard.run_server(debug=False)
-
-
-
-
-#new things to add
-#cleaning option for filtering out the keyword used for retrieval
